@@ -40,8 +40,8 @@ export interface TradeCalculationParams {
 }
 
 export interface TradeCalculationResult {
-  tp500: string;
-  tp3000: string;
+  tp1000: string; // Renamed from tp500
+  tp2000: string; // Renamed from tp3000
   tpCustom: string;
   slPrice: string;
   calculatedLots: string;

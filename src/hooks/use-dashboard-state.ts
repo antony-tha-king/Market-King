@@ -42,7 +42,13 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
     const updatedGroups = basePlan.groups.map(group => ({
       ...group,
       trades: group.trades.map((trade, index) => {
-        const overallTradeIndex = group.groupNumber === 1 ? index : basePlan.groups[0].trades.length + index;
+        // Calculate overallTradeIndex correctly based on possibly multiple groups before current one
+        let overallTradeIndex = index;
+        for(let i = 0; i < group.groupNumber -1; i++) {
+            if(basePlan.groups[i]) {
+                overallTradeIndex += basePlan.groups[i].trades.length;
+            }
+        }
         return {
           ...trade,
           status: tradesToday > overallTradeIndex ? '✅ Completed' : '🟡 Pending',
@@ -87,8 +93,6 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
     }
     
     // Increment tradesToday only if balance has changed meaningfully (e.g. after a trade)
-    // The original logic increments tradesToday whenever updateBalance is called with a new balance.
-    // Let's assume a trade was made if balance is updated.
     if (newBalance !== currentBalance) {
         updatedTradesToday++;
     }
@@ -129,10 +133,16 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
       id: `${instrumentType}-daysRemaining`
     },
     { label: "Today's Target (2%)", value: (currentBalance * 0.02).toFixed(2), unit: "$", id: `${instrumentType}-dailyTarget` },
-    { label: "Stop Loss (5%)", value: (currentBalance * 0.05).toFixed(2), unit: "$", copyable: true, id: `${instrumentType}-stopLossAmount` },
+    { 
+      label: instrumentType === 'volatility75' ? "Max Risk per Trade (1%)" : "Stop Loss (5%)", 
+      value: instrumentType === 'volatility75' ? (currentBalance * 0.01).toFixed(2) : (currentBalance * 0.05).toFixed(2), 
+      unit: "$", 
+      copyable: true, 
+      id: `${instrumentType}-stopLossAmount` 
+    },
     { 
       label: "Rec. Lot Size", 
-      value: (instrumentType === 'gold' ? Math.max(0.01, currentBalance * 0.01 / 50) : Math.max(0.01, currentBalance * 0.01 / 500)).toFixed(3), 
+      value: (instrumentType === 'gold' ? Math.max(0.01, currentBalance * 0.01 / 50) : Math.max(0.01, currentBalance * 0.01 / 1000)).toFixed(3), 
       copyable: true, 
       id: `${instrumentType}-lotSize` 
     },

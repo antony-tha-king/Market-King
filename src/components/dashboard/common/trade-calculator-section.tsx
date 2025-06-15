@@ -25,7 +25,7 @@ interface ResultItemProps {
 
 const ResultItem = ({ label, value, idSuffix }: ResultItemProps) => {
   const { toast } = useToast();
-  const elementId = `${label.toLowerCase().replace(/\s/g, "-")}-${idSuffix}`;
+  const elementId = `${label.toLowerCase().replace(/\s/g, "-").replace(/[()]/g, "")}-${idSuffix}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(value).then(() => {
@@ -62,8 +62,8 @@ const ResultItem = ({ label, value, idSuffix }: ResultItemProps) => {
 export function TradeCalculatorSection({ currentBalance, instrumentType, instrumentName }: TradeCalculatorSectionProps) {
   const [entryPrice, setEntryPrice] = useState<string>("");
   const [tradeDirection, setTradeDirection] = useState<TradeDirection>("rise");
-  const [customTP, setCustomTP] = useState<string>("500");
-  const [customSL, setCustomSL] = useState<string>("500");
+  const [customTP, setCustomTP] = useState<string>(instrumentType === 'volatility75' ? "2000" : "500");
+  const [customSL, setCustomSL] = useState<string>(instrumentType === 'volatility75' ? "1000" : "500");
   const [results, setResults] = useState<TradeCalculationResult | null>(null);
   const { toast } = useToast();
 
@@ -85,7 +85,6 @@ export function TradeCalculatorSection({ currentBalance, instrumentType, instrum
       return;
     }
 
-
     const calculated = calculateTradePointsLogic({
       entryPrice: entry,
       direction: tradeDirection,
@@ -97,8 +96,8 @@ export function TradeCalculatorSection({ currentBalance, instrumentType, instrum
     setResults(calculated);
   };
 
-  const defaultTPLabel = instrumentType === 'gold' ? "TP (50 Pips)" : "TP (500 Pips)";
-  const defaultTP3kLabel = instrumentType === 'gold' ? "TP (300 Pips)" : "TP (3k Pips)";
+  const defaultTP1Label = instrumentType === 'gold' ? "TP (50 Pips)" : "TP (1000 Pips)";
+  const defaultTP2Label = instrumentType === 'gold' ? "TP (300 Pips)" : "TP (2000 Pips)";
 
 
   return (
@@ -130,11 +129,11 @@ export function TradeCalculatorSection({ currentBalance, instrumentType, instrum
           </div>
           <div>
             <Label htmlFor="customTPCalc" className="text-foreground/80">Custom Take Profit (pips)</Label>
-            <Input id="customTPCalc" type="number" placeholder="e.g., 500" value={customTP} onChange={(e) => setCustomTP(e.target.value)} />
+            <Input id="customTPCalc" type="number" placeholder={instrumentType === 'volatility75' ? "e.g., 2000" : "e.g., 500"} value={customTP} onChange={(e) => setCustomTP(e.target.value)} />
           </div>
            <div>
             <Label htmlFor="customSLCalc" className="text-foreground/80">Custom Stop Loss (pips)</Label>
-            <Input id="customSLCalc" type="number" placeholder="e.g., 500" value={customSL} onChange={(e) => setCustomSL(e.target.value)} />
+            <Input id="customSLCalc" type="number" placeholder={instrumentType === 'volatility75' ? "e.g., 1000" : "e.g., 500"} value={customSL} onChange={(e) => setCustomSL(e.target.value)} />
           </div>
         </div>
         <Button onClick={handleCalculate} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground mb-6 py-3 text-base">
@@ -143,8 +142,8 @@ export function TradeCalculatorSection({ currentBalance, instrumentType, instrum
 
         {results && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <ResultItem label={defaultTPLabel} value={results.tp500} idSuffix={instrumentType} />
-            <ResultItem label={defaultTP3kLabel} value={results.tp3000} idSuffix={instrumentType} />
+            <ResultItem label={defaultTP1Label} value={results.tp1000} idSuffix={instrumentType} />
+            <ResultItem label={defaultTP2Label} value={results.tp2000} idSuffix={instrumentType} />
             <ResultItem label="Custom Take Profit (TP)" value={results.tpCustom} idSuffix={instrumentType} />
             <ResultItem label="Stop Loss (SL)" value={results.slPrice} idSuffix={instrumentType} />
             <ResultItem label="Recommended Lot Size" value={results.calculatedLots} idSuffix={instrumentType} />
