@@ -11,6 +11,8 @@ const MIN_LOT_SIZE_GOLD_METRIC = 0.01;
 const MAX_LOT_SIZE_GOLD_METRIC = 10;
 const MIN_LOT_SIZE_V75_METRIC = 0.001;
 const MAX_LOT_SIZE_V75_METRIC = 5;
+const V75_SL_PIPS_FOR_METRIC_CALC = 1000; // For 1% risk calculation for V75 metric
+const GOLD_SL_PIPS_FOR_METRIC_CALC = 50;  // For 1% risk calculation for Gold metric (example)
 
 
 export function useDashboardState(instrumentType: InstrumentType, initialBalanceDefault: number) {
@@ -149,21 +151,22 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
     { 
       label: "Rec. Lot Size", 
       value: (() => {
-        const riskPercent = 0.01;
+        const riskPercent = 0.01; // Always 1% risk for this metric calculation
         let recLots;
         let lotPrecision;
+
         if (instrumentType === 'gold') {
-          const GOLD_SL_PIPS_FOR_METRIC = 50; // SL pips for Gold metric (1% risk over these pips)
-          recLots = Math.max(MIN_LOT_SIZE_GOLD_METRIC, (currentBalance * riskPercent) / (GOLD_SL_PIPS_FOR_METRIC * 0.1)); // Factor 0.1 for pip value
+          // Lot size for 1% risk over GOLD_SL_PIPS_FOR_METRIC_CALC pips
+          recLots = Math.max(MIN_LOT_SIZE_GOLD_METRIC, (currentBalance * riskPercent) / (GOLD_SL_PIPS_FOR_METRIC_CALC * 0.1)); // Factor 0.1 for pip value
           recLots = Math.min(recLots, MAX_LOT_SIZE_GOLD_METRIC);
           lotPrecision = 2;
         } else { // Volatility 75
-          const V75_SL_PIPS_FOR_METRIC = 1000; // SL pips for V75 metric (1% risk over these pips)
-          recLots = Math.max(MIN_LOT_SIZE_V75_METRIC, (currentBalance * riskPercent) / V75_SL_PIPS_FOR_METRIC);
+          // Lot size for 1% risk over V75_SL_PIPS_FOR_METRIC_CALC (1000) pips
+          recLots = Math.max(MIN_LOT_SIZE_V75_METRIC, (currentBalance * riskPercent) / V75_SL_PIPS_FOR_METRIC_CALC);
           recLots = Math.min(recLots, MAX_LOT_SIZE_V75_METRIC);
           lotPrecision = 3;
         }
-        return recLots.toFixed(lotPrecision);
+        return currentBalance > 0 ? recLots.toFixed(lotPrecision) : (0).toFixed(lotPrecision);
       })(), 
       copyable: true, 
       id: `${instrumentType}-lotSize` 
@@ -178,4 +181,3 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
     handleUpdateBalance,
   };
 }
-
