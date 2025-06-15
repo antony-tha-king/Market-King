@@ -16,7 +16,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </Link>
           <nav className="flex items-center space-x-4">
              <DarkModeToggle />
-             <Link href="/" legacyBehavior passHref>
+             <Link href="/">
                 <Button variant="outline">
                     <LogOut className="mr-2 h-4 w-4" /> Logout
                 </Button>
