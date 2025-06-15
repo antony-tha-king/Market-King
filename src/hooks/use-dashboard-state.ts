@@ -14,9 +14,9 @@ const GOLD_SL_PIPS_FOR_METRIC_CALC = 50; // For 1% risk calculation for Gold met
 
 const MIN_LOT_SIZE_V75_METRIC = 0.001;
 const MAX_LOT_SIZE_V75_METRIC = 5;
-const V75_PIPS_FOR_1_PERCENT_RISK_LOT_CALC = 500; // Lot size based on 500 pips = 1% risk
-const V75_SL_PIPS_IN_PLAN = 1000; // Actual SL used in V75 trade plan for risk metric
-const V75_TP_PIPS_IN_PLAN = 2000; // Actual TP used in V75 trade plan for gain metric
+const V75_PIPS_FOR_1_PERCENT_RISK_LOT_CALC = 500; // Lot size based on 500 pips = 1% risk principle
+const V75_SL_PIPS_IN_PLAN = 1000; // Actual SL used in V75 trade plan
+const V75_TP_PIPS_IN_PLAN = 2000; // Actual TP used in V75 trade plan
 
 
 export function useDashboardState(instrumentType: InstrumentType, initialBalanceDefault: number) {
@@ -71,7 +71,6 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
 
     setTradePlan({
       ...basePlan,
-      groups: updatedGroups,
       completedTrades: tradesToday,
       remainingTrades: Math.max(basePlan.totalTradesRequired - tradesToday, 0),
     });
@@ -104,7 +103,6 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
       setLocalStorageItem(getLsKey('lastTradeDate'), today);
     }
 
-
     if (newBalance !== currentBalance) {
         updatedTradesToday++;
     }
@@ -136,38 +134,40 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
     return () => clearInterval(intervalId);
   }, [checkEndOfMonthReminder]);
 
-  // Calculate metrics
   let dailyTargetLabel = "Today's Target (2%)";
   let dailyTargetValue = (currentBalance * 0.02);
-  let riskMetricLabel = "Stop Loss (5%)"; // Default for Gold
-  let riskMetricValue = (currentBalance * 0.05); // Default for Gold
-  let recLotsValue: number;
+  let riskMetricLabel = "Stop Loss (5%)";
+  let riskMetricValue = (currentBalance * 0.05);
+  let recLotsString: string;
   let lotPrecision: number;
 
   if (instrumentType === 'volatility75') {
     const baseLotsForV75 = (currentBalance * 0.01) / V75_PIPS_FOR_1_PERCENT_RISK_LOT_CALC;
-    recLotsValue = Math.min(Math.max(baseLotsForV75, MIN_LOT_SIZE_V75_METRIC), MAX_LOT_SIZE_V75_METRIC);
-    lotPrecision = 3;
+    let preciseRecLotsValue = Math.max(MIN_LOT_SIZE_V75_METRIC, baseLotsForV75);
+    preciseRecLotsValue = Math.min(MAX_LOT_SIZE_V75_METRIC, preciseRecLotsValue);
     
-    // Assuming $1 profit/loss per pip per lot for V75 for these calculations
-    const potentialGain = recLotsValue * V75_TP_PIPS_IN_PLAN;
-    const potentialRisk = recLotsValue * V75_SL_PIPS_IN_PLAN;
+    lotPrecision = 3;
+    recLotsString = preciseRecLotsValue.toFixed(lotPrecision);
+    const actualRecLotsUsedForCalc = parseFloat(recLotsString);
 
-    dailyTargetLabel = "Today's Target (4%)";
+    const potentialGain = actualRecLotsUsedForCalc * V75_TP_PIPS_IN_PLAN;
+    const potentialRisk = actualRecLotsUsedForCalc * V75_SL_PIPS_IN_PLAN;
+
+    dailyTargetLabel = `Today's Target (${currentBalance > 0 ? ((potentialGain / currentBalance) * 100).toFixed(1) : '0.0'}%)`;
     dailyTargetValue = currentBalance > 0 ? potentialGain : 0;
     
-    riskMetricLabel = "Trade Risk (2%)";
+    riskMetricLabel = `Trade Risk (${currentBalance > 0 ? ((potentialRisk / currentBalance) * 100).toFixed(1) : '0.0'}%)`;
     riskMetricValue = currentBalance > 0 ? potentialRisk : 0;
 
   } else { // Gold
-    // Lot size for Gold: 1% risk over GOLD_SL_PIPS_FOR_METRIC_CALC (e.g., 50 pips)
-    // 0.01 lots = $0.1 per pip for Gold.
     const riskAmountGold = currentBalance * 0.01;
     const baseLotsGold = riskAmountGold / (GOLD_SL_PIPS_FOR_METRIC_CALC * 0.1);
-    recLotsValue = Math.min(Math.max(baseLotsGold, MIN_LOT_SIZE_GOLD_METRIC), MAX_LOT_SIZE_GOLD_METRIC);
+    let preciseRecLotsValue = Math.max(MIN_LOT_SIZE_GOLD_METRIC, baseLotsGold);
+    preciseRecLotsValue = Math.min(MAX_LOT_SIZE_GOLD_METRIC, preciseRecLotsValue);
+    
     lotPrecision = 2;
+    recLotsString = preciseRecLotsValue.toFixed(lotPrecision);
   }
-
 
   const metrics: Metric[] = [
     { label: "Current Balance", value: currentBalance.toFixed(2), unit: "$", id: `${instrumentType}-currentBalance` },
@@ -186,7 +186,7 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
     },
     {
       label: "Rec. Lot Size",
-      value: currentBalance > 0 ? recLotsValue.toFixed(lotPrecision) : (0).toFixed(lotPrecision),
+      value: currentBalance > 0 ? recLotsString : (0).toFixed(lotPrecision),
       copyable: true,
       id: `${instrumentType}-lotSize`
     },
@@ -200,4 +200,3 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
     handleUpdateBalance,
   };
 }
-
