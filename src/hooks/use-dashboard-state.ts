@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -6,6 +7,11 @@ import type { TradePlan, Metric, InstrumentType } from '@/lib/types';
 import { useToast } from './use-toast';
 
 const TARGET_BALANCE = 1000000;
+const MIN_LOT_SIZE_GOLD_METRIC = 0.01;
+const MAX_LOT_SIZE_GOLD_METRIC = 10;
+const MIN_LOT_SIZE_V75_METRIC = 0.001;
+const MAX_LOT_SIZE_V75_METRIC = 5;
+
 
 export function useDashboardState(instrumentType: InstrumentType, initialBalanceDefault: number) {
   const [currentBalance, setCurrentBalance] = useState<number>(initialBalanceDefault);
@@ -35,14 +41,14 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
 
   const updateTradesDisplay = useCallback(() => {
     if (currentBalance <= 0) {
-      setTradePlan(null); // Or some default empty state
+      setTradePlan(null); 
       return;
     }
     const basePlan = calculateTradeGroupsLogic(currentBalance, instrumentType);
     const updatedGroups = basePlan.groups.map(group => ({
       ...group,
       trades: group.trades.map((trade, index) => {
-        // Calculate overallTradeIndex correctly based on possibly multiple groups before current one
+        
         let overallTradeIndex = index;
         for(let i = 0; i < group.groupNumber -1; i++) {
             if(basePlan.groups[i]) {
@@ -73,12 +79,12 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
 
   useEffect(() => {
     setLocalStorageItem(getLsKey('currentBalance'), currentBalance);
-    updateTradesDisplay(); // Re-calculate trade plan when balance changes
+    updateTradesDisplay(); 
   }, [currentBalance, instrumentType, updateTradesDisplay]);
 
   useEffect(() => {
     setLocalStorageItem(getLsKey('tradesToday'), tradesToday);
-    updateTradesDisplay(); // Re-calculate trade status when tradesToday changes
+    updateTradesDisplay(); 
   }, [tradesToday, instrumentType, updateTradesDisplay]);
 
 
@@ -87,12 +93,12 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
     let updatedTradesToday = tradesToday;
 
     if (today !== lastTradeDate) {
-      updatedTradesToday = 0; // Reset trades for the new day
+      updatedTradesToday = 0; 
       setLastTradeDate(today);
       setLocalStorageItem(getLsKey('lastTradeDate'), today);
     }
     
-    // Increment tradesToday only if balance has changed meaningfully (e.g. after a trade)
+    
     if (newBalance !== currentBalance) {
         updatedTradesToday++;
     }
@@ -120,7 +126,7 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
 
   useEffect(() => {
     checkEndOfMonthReminder();
-    const intervalId = setInterval(checkEndOfMonthReminder, 1000 * 60 * 60 * 6); // Check every 6 hours
+    const intervalId = setInterval(checkEndOfMonthReminder, 1000 * 60 * 60 * 6); 
     return () => clearInterval(intervalId);
   }, [checkEndOfMonthReminder]);
 
@@ -142,7 +148,23 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
     },
     { 
       label: "Rec. Lot Size", 
-      value: (instrumentType === 'gold' ? Math.max(0.01, currentBalance * 0.01 / 50) : Math.max(0.01, currentBalance * 0.01 / 1000)).toFixed(3), 
+      value: (() => {
+        const riskPercent = 0.01;
+        let recLots;
+        let lotPrecision;
+        if (instrumentType === 'gold') {
+          const GOLD_SL_PIPS_FOR_METRIC = 50; // SL pips for Gold metric (1% risk over these pips)
+          recLots = Math.max(MIN_LOT_SIZE_GOLD_METRIC, (currentBalance * riskPercent) / (GOLD_SL_PIPS_FOR_METRIC * 0.1)); // Factor 0.1 for pip value
+          recLots = Math.min(recLots, MAX_LOT_SIZE_GOLD_METRIC);
+          lotPrecision = 2;
+        } else { // Volatility 75
+          const V75_SL_PIPS_FOR_METRIC = 1000; // SL pips for V75 metric (1% risk over these pips)
+          recLots = Math.max(MIN_LOT_SIZE_V75_METRIC, (currentBalance * riskPercent) / V75_SL_PIPS_FOR_METRIC);
+          recLots = Math.min(recLots, MAX_LOT_SIZE_V75_METRIC);
+          lotPrecision = 3;
+        }
+        return recLots.toFixed(lotPrecision);
+      })(), 
       copyable: true, 
       id: `${instrumentType}-lotSize` 
     },
@@ -156,3 +178,4 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
     handleUpdateBalance,
   };
 }
+
