@@ -14,7 +14,9 @@ const GOLD_SL_PIPS_FOR_METRIC_CALC = 50; // For 1% risk calculation for Gold met
 
 const MIN_LOT_SIZE_V75_METRIC = 0.001;
 const MAX_LOT_SIZE_V75_METRIC = 5;
-const V75_PIPS_FOR_1_PERCENT_RISK_LOT_CALC = 500; // V75 lot size based on 500 pips = 1% risk
+const V75_PIPS_FOR_1_PERCENT_RISK_LOT_CALC = 500; // Lot size based on 500 pips = 1% risk
+const V75_SL_PIPS_IN_PLAN = 1000; // Actual SL used in V75 trade plan for risk metric
+const V75_TP_PIPS_IN_PLAN = 2000; // Actual TP used in V75 trade plan for gain metric
 
 
 export function useDashboardState(instrumentType: InstrumentType, initialBalanceDefault: number) {
@@ -134,6 +136,38 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
     return () => clearInterval(intervalId);
   }, [checkEndOfMonthReminder]);
 
+  // Calculate metrics
+  let dailyTargetLabel = "Today's Target (2%)";
+  let dailyTargetValue = (currentBalance * 0.02);
+  let riskMetricLabel = "Stop Loss (5%)"; // Default for Gold
+  let riskMetricValue = (currentBalance * 0.05); // Default for Gold
+  let recLotsValue: number;
+  let lotPrecision: number;
+
+  if (instrumentType === 'volatility75') {
+    const baseLotsForV75 = (currentBalance * 0.01) / V75_PIPS_FOR_1_PERCENT_RISK_LOT_CALC;
+    recLotsValue = Math.min(Math.max(baseLotsForV75, MIN_LOT_SIZE_V75_METRIC), MAX_LOT_SIZE_V75_METRIC);
+    lotPrecision = 3;
+    
+    // Assuming $1 profit/loss per pip per lot for V75 for these calculations
+    const potentialGain = recLotsValue * V75_TP_PIPS_IN_PLAN;
+    const potentialRisk = recLotsValue * V75_SL_PIPS_IN_PLAN;
+
+    dailyTargetLabel = "Today's Target (4%)";
+    dailyTargetValue = currentBalance > 0 ? potentialGain : 0;
+    
+    riskMetricLabel = "Trade Risk (2%)";
+    riskMetricValue = currentBalance > 0 ? potentialRisk : 0;
+
+  } else { // Gold
+    // Lot size for Gold: 1% risk over GOLD_SL_PIPS_FOR_METRIC_CALC (e.g., 50 pips)
+    // 0.01 lots = $0.1 per pip for Gold.
+    const riskAmountGold = currentBalance * 0.01;
+    const baseLotsGold = riskAmountGold / (GOLD_SL_PIPS_FOR_METRIC_CALC * 0.1);
+    recLotsValue = Math.min(Math.max(baseLotsGold, MIN_LOT_SIZE_GOLD_METRIC), MAX_LOT_SIZE_GOLD_METRIC);
+    lotPrecision = 2;
+  }
+
 
   const metrics: Metric[] = [
     { label: "Current Balance", value: currentBalance.toFixed(2), unit: "$", id: `${instrumentType}-currentBalance` },
@@ -142,46 +176,17 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
       value: currentBalance > 0 && currentBalance < TARGET_BALANCE ? Math.ceil(Math.log(TARGET_BALANCE / currentBalance) / Math.log(1.02)) : (currentBalance >= TARGET_BALANCE ? 0 : "-"),
       id: `${instrumentType}-daysRemaining`
     },
-    { label: "Today's Target (2%)", value: (currentBalance * 0.02).toFixed(2), unit: "$", id: `${instrumentType}-dailyTarget` },
+    { label: dailyTargetLabel, value: dailyTargetValue.toFixed(2), unit: "$", id: `${instrumentType}-dailyTarget` },
     {
-      label: instrumentType === 'volatility75' ? "Max Risk per Trade (1%)" : "Stop Loss (5%)", // V75: This 1% is monetary value. Actual trade risk could be 2% if SL=1000 & lots based on 500pips=1%
-      value: instrumentType === 'volatility75' ? (currentBalance * 0.01).toFixed(2) : (currentBalance * 0.05).toFixed(2),
+      label: riskMetricLabel,
+      value: riskMetricValue.toFixed(2),
       unit: "$",
       copyable: true,
       id: `${instrumentType}-stopLossAmount`
     },
     {
       label: "Rec. Lot Size",
-      value: (() => {
-        const riskAmount = currentBalance * 0.01; // Base 1% of balance for lot calculation
-        let recLots;
-        let lotPrecision;
-        let minLot, maxLot;
-
-        if (instrumentType === 'gold') {
-          // Lot size for Gold: 1% risk over GOLD_SL_PIPS_FOR_METRIC_CALC (e.g., 50 pips)
-          // For gold, 0.01 lots gives $0.1 profit/loss per pip.
-          // Lots = RiskAmount / (Pips * ValuePerPipPerStandardLotScalingFactor)
-          // Here, we use 0.1 as the value of 1 pip for 0.01 lots.
-          // So, if RiskAmount is $X, Pips is Y, Lots should be Z such that Z * Y * 0.1 * (Z_scaled_to_0.01) = X
-          // Simpler: Lots_Value_Like_0.01 = RiskAmount / (Pips * 0.1)
-          recLots = riskAmount / (GOLD_SL_PIPS_FOR_METRIC_CALC * 0.1);
-          minLot = MIN_LOT_SIZE_GOLD_METRIC;
-          maxLot = MAX_LOT_SIZE_GOLD_METRIC;
-          lotPrecision = 2;
-        } else { // Volatility 75
-          // Lot size for V75: 1% risk over V75_PIPS_FOR_1_PERCENT_RISK_LOT_CALC (500 pips)
-          // For V75, assume 1 lot gives $1 profit/loss per pip.
-          // Lots = RiskAmount / Pips
-          recLots = riskAmount / V75_PIPS_FOR_1_PERCENT_RISK_LOT_CALC;
-          minLot = MIN_LOT_SIZE_V75_METRIC;
-          maxLot = MAX_LOT_SIZE_V75_METRIC;
-          lotPrecision = 3;
-        }
-        recLots = Math.max(minLot, recLots);
-        recLots = Math.min(recLots, maxLot); // Apply max lot size
-        return currentBalance > 0 ? recLots.toFixed(lotPrecision) : (0).toFixed(lotPrecision);
-      })(),
+      value: currentBalance > 0 ? recLotsValue.toFixed(lotPrecision) : (0).toFixed(lotPrecision),
       copyable: true,
       id: `${instrumentType}-lotSize`
     },
@@ -195,3 +200,4 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
     handleUpdateBalance,
   };
 }
+
