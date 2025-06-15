@@ -39,16 +39,15 @@ const MAX_LOT_SIZE_GOLD = 10;
 const MIN_LOT_SIZE_V75 = 0.001;
 const MAX_LOT_SIZE_V75 = 5;
 
-const V75_PIPS_FOR_1_PERCENT_RISK_LOT_CALC = 500; // Lot size calculated based on 500 pips = 1% risk principle
+const V75_PIPS_FOR_LOT_CALC_BASE = 500; // Lot size calculated based on 500 pips = 1% risk principle
 const V75_SL_PIPS_IN_PLAN = 1000;
 const V75_TP_PIPS_IN_PLAN = 2000;
 
 
 export const calculateTradeGroupsLogic = (currentBalance: number, instrumentType: InstrumentType): Omit<TradePlan, 'completedTrades' | 'remainingTrades'> => {
-  const RISK_PER_TRADE_PERCENT_FOR_LOT_CALC = 0.01; // Base for lot calculation (1% of balance for X pips)
-
   if (instrumentType === 'volatility75') {
-    let baseLots = (currentBalance * RISK_PER_TRADE_PERCENT_FOR_LOT_CALC) / V75_PIPS_FOR_1_PERCENT_RISK_LOT_CALC;
+    const riskPercent = 0.01; // 1% risk
+    let baseLots = (currentBalance * riskPercent) / V75_PIPS_FOR_LOT_CALC_BASE;
     let preciseLotsForTrade = Math.max(MIN_LOT_SIZE_V75, baseLots);
     preciseLotsForTrade = Math.min(MAX_LOT_SIZE_V75, preciseLotsForTrade);
     
@@ -73,7 +72,7 @@ export const calculateTradeGroupsLogic = (currentBalance: number, instrumentType
     };
 
     return {
-      dailyTarget: profitForTrade,
+      dailyTarget: profitForTrade, // This will be the 4% target for V75
       totalTradesRequired: 1,
       groups: [group],
     };
@@ -105,7 +104,7 @@ export const calculateTradeGroupsLogic = (currentBalance: number, instrumentType
               profit: profitOfSubTrade.toFixed(2),
               percent: currentBalance > 0 ? ((profitOfSubTrade / currentBalance) * 100).toFixed(2) : "0.00",
               status: '🟡 Pending',
-              tradeNumber: 0,
+              tradeNumber: 0, // This will be updated in useDashboardState
           });
         }
         
@@ -156,9 +155,9 @@ export const calculateTradePointsLogic = (params: TradeCalculationParams): Trade
       lotPrecision = 2;
       lotsToRecommendString = baseLots.toFixed(lotPrecision);
   } else { // V75
-      // Lot size for V75: based on 500 pips = 1% risk principle for general recommendation
-      const riskPercentForLotCalc = 0.01;
-      let baseLots = (currentBalance * riskPercentForLotCalc) / V75_PIPS_FOR_1_PERCENT_RISK_LOT_CALC;
+      const riskPercentForLotCalc = 0.01; // Lot size based on 1% risk
+      // For V75, the lot size for the calculator always uses the "500 pips = 1% risk" rule for consistency with displayed metrics.
+      let baseLots = (currentBalance * riskPercentForLotCalc) / V75_PIPS_FOR_LOT_CALC_BASE;
       baseLots = Math.max(MIN_LOT_SIZE_V75, baseLots);
       baseLots = Math.min(MAX_LOT_SIZE_V75, baseLots);
       lotPrecision = 3;
@@ -171,7 +170,8 @@ export const calculateTradePointsLogic = (params: TradeCalculationParams): Trade
   const tpCustomVal = direction === 'rise' ? entryPrice + tpCustomPriceMove : entryPrice - tpCustomPriceMove;
   const sl = direction === 'rise' ? entryPrice - slPriceMove : entryPrice + slPriceMove;
 
-  const pricePrecision = instrumentType === 'gold' ? 2 : 3;
+  const pricePrecision = instrumentType === 'gold' ? 2 : (entryPrice.toString().split('.')[1]?.length || 3);
+
 
   return {
       tp1000: "-", 
@@ -192,8 +192,8 @@ export const calculateCompoundingLogic = (initialBalance: number, frequency: Com
   const dailyGrowthRate = 1.02; 
   switch (frequency) {
       case 'daily': days = periods; break;
-      case 'monthly': days = periods * 20; break;
-      case 'yearly': days = periods * 250; break;
+      case 'monthly': days = periods * 20; break; // Assuming 20 trading days in a month
+      case 'yearly': days = periods * 250; break; // Assuming 250 trading days in a year
       default: days = 0;
   }
 
@@ -213,9 +213,9 @@ export const calculateWithdrawalLogic = (manualBalance: number): WithdrawalResul
 
   let simulatedBalanceAtStartOfPeriod = manualBalance;
   const dailyGrowthRate = 1.02; 
-  const tradingDaysInMonth = 20; 
+  const daysInPeriod = 30; // Changed from 20 to 30 to match JS logic
 
-  for (let i = 0; i < tradingDaysInMonth; i++) {
+  for (let i = 0; i < daysInPeriod; i++) {
       simulatedBalanceAtStartOfPeriod = simulatedBalanceAtStartOfPeriod / dailyGrowthRate;
   }
 
