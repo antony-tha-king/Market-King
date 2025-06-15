@@ -1,3 +1,4 @@
+
 import type { ReactNode } from 'react';
 import { DarkModeToggle } from '@/components/dashboard/common/dark-mode-toggle';
 import { WhatsAppButton } from '@/components/dashboard/common/whatsapp-button';
@@ -14,6 +15,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             Trade Hub
           </Link>
           <nav className="flex items-center space-x-4">
+             <DarkModeToggle />
              <Link href="/" legacyBehavior passHref>
                 <Button variant="outline">
                     <LogOut className="mr-2 h-4 w-4" /> Logout
@@ -25,7 +27,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <main className="flex-grow container mx-auto p-4 md:p-8">
         {children}
       </main>
-      <DarkModeToggle />
       <WhatsAppButton />
       <footer className="py-6 md:px-8 md:py-0 border-t bg-background/80">
         <div className="container flex flex-col items-center justify-center gap-4 md:h-24 md:flex-row">
