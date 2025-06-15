@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -96,10 +97,6 @@ export function TradeCalculatorSection({ currentBalance, instrumentType, instrum
     setResults(calculated);
   };
 
-  const defaultTP1Label = instrumentType === 'gold' ? "TP (50 Pips)" : "TP (1000 Pips)";
-  const defaultTP2Label = instrumentType === 'gold' ? "TP (300 Pips)" : "TP (2000 Pips)";
-
-
   return (
     <Card className="shadow-lg mb-8">
       <CardHeader>
@@ -142,8 +139,6 @@ export function TradeCalculatorSection({ currentBalance, instrumentType, instrum
 
         {results && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <ResultItem label={defaultTP1Label} value={results.tp1000} idSuffix={instrumentType} />
-            <ResultItem label={defaultTP2Label} value={results.tp2000} idSuffix={instrumentType} />
             <ResultItem label="Custom Take Profit (TP)" value={results.tpCustom} idSuffix={instrumentType} />
             <ResultItem label="Stop Loss (SL)" value={results.slPrice} idSuffix={instrumentType} />
             <ResultItem label="Recommended Lot Size" value={results.calculatedLots} idSuffix={instrumentType} />
