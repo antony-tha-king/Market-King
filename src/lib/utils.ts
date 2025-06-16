@@ -36,20 +36,21 @@ export const setLocalStorageItem = <T>(key: string, value: T): void => {
 
 // Gold Specific Constants
 const MIN_LOT_SIZE_GOLD = 0.01;
-const MAX_LOT_SIZE_GOLD = 5; // User specified
+const MAX_LOT_SIZE_GOLD = 5.00; 
 const GOLD_LOT_PRECISION = 2;
-const GOLD_PIP_TO_PRICE_FACTOR = 0.01; // 1 pip = $0.01 price move for Gold
-const GOLD_VALUE_PER_PIP_PER_FULL_LOT = 1; // $1 profit/loss per pip for 1 full lot of Gold
-const GOLD_PIPS_FOR_TRADE_PLAN_PROFIT_CALC = 500; // From JS, for trade plan profit calc
-const GOLD_LOT_CALC_DIVISOR_FOR_METRIC = 500; // From JS: lot size for dashboard metric based on 500 pips = 1% risk
+const GOLD_PIP_TO_PRICE_FACTOR = 0.10; // 1 pip = $0.10 price move for Gold
+const GOLD_VALUE_PER_PIP_PER_STANDARD_LOT = 10; // $10 profit/loss per pip for 1 standard lot of Gold
+const GOLD_STRATEGY_SL_PIPS_FOR_PLAN = 100; // SL pips for trade plan logic
+const GOLD_STRATEGY_TP_PIPS_FOR_PLAN = 200; // TP pips for trade plan logic
+
 
 // Volatility 75 Specific Constants
 const MIN_LOT_SIZE_V75 = 0.001;
-const MAX_LOT_SIZE_V75 = 5;
+const MAX_LOT_SIZE_V75 = 5.00;
 const V75_LOT_PRECISION = 3;
-const V75_STRATEGY_SL_PIPS = 1000;
-const V75_STRATEGY_TP_PIPS = 2000;
-const V75_LOT_CALC_DIVISOR_FOR_METRIC = 500; // Lot size for dashboard metric based on 500 pips = 1% risk
+const V75_STRATEGY_SL_PIPS_FOR_PLAN = 1000;
+const V75_STRATEGY_TP_PIPS_FOR_PLAN = 2000;
+const V75_LOT_CALC_BASE_PIPS_FOR_1_PERCENT_RISK = 500; // Lot size based on 500 pips = 1% risk
 const V75_VALUE_PER_PIP_PER_FULL_LOT = 1; // V75: 1 pip = $1 profit/loss per lot
 
 
@@ -59,14 +60,12 @@ export const calculateTradeGroupsLogic = (currentBalance: number, instrumentType
   }
 
   if (instrumentType === 'volatility75') {
-    const riskPercentForLot = 0.01; // For lot sizing rule (500 pips = 1% risk)
-    let baseLots = (currentBalance * riskPercentForLot) / V75_LOT_CALC_DIVISOR_FOR_METRIC;
-    
-    let lotsForTrade = parseFloat(
+    const baseLots = (currentBalance * 0.01) / V75_LOT_CALC_BASE_PIPS_FOR_1_PERCENT_RISK;
+    const lotsForTrade = parseFloat(
       Math.max(MIN_LOT_SIZE_V75, Math.min(baseLots, MAX_LOT_SIZE_V75)).toFixed(V75_LOT_PRECISION)
     );
 
-    const profitForTrade = lotsForTrade * V75_STRATEGY_TP_PIPS * V75_VALUE_PER_PIP_PER_FULL_LOT;
+    const profitForTrade = lotsForTrade * V75_STRATEGY_TP_PIPS_FOR_PLAN * V75_VALUE_PER_PIP_PER_FULL_LOT;
     const percentForTrade = currentBalance > 0 ? (profitForTrade / currentBalance) * 100 : 0;
 
     const tradeDetail: TradeDetail = {
@@ -74,7 +73,7 @@ export const calculateTradeGroupsLogic = (currentBalance: number, instrumentType
       profit: profitForTrade.toFixed(2),
       percent: percentForTrade.toFixed(2),
       status: '🟡 Pending',
-      tradeNumber: 0, // Will be updated
+      tradeNumber: 0, 
     };
 
     const group: TradeGroup = {
@@ -83,80 +82,40 @@ export const calculateTradeGroupsLogic = (currentBalance: number, instrumentType
       totalLots: lotsForTrade.toFixed(V75_LOT_PRECISION),
     };
     
-    const dailyTargetMonetary = profitForTrade; // Actual gain from the single V75 strategy trade
-
     return {
-      dailyTarget: dailyTargetMonetary,
+      dailyTarget: profitForTrade, // Actual gain from the V75 strategy trade
       totalTradesRequired: 1,
       groups: [group],
     };
 
-  } else { // Gold logic (mirroring JS structure)
-    const DAILY_TARGET_PERCENT_GOLD = 0.02;
-    const dailyTargetMonetaryGold = currentBalance * DAILY_TARGET_PERCENT_GOLD;
-    const targetProfitPerGroup = currentBalance * 0.01; // Each of the 2 groups aims for 1%
+  } else { // Gold logic: Simplified to one trade risking 1% for 2% gain
+    const amountToRisk = currentBalance * 0.01;
+    const baseLotsGold = amountToRisk / (GOLD_STRATEGY_SL_PIPS_FOR_PLAN * GOLD_VALUE_PER_PIP_PER_STANDARD_LOT);
+    const lotsForTrade = parseFloat(
+      Math.max(MIN_LOT_SIZE_GOLD, Math.min(baseLotsGold, MAX_LOT_SIZE_GOLD)).toFixed(GOLD_LOT_PRECISION)
+    );
 
-    // Calculate the total lots needed for one group to achieve 1% profit with 500 pips
-    let groupBaseLots = targetProfitPerGroup / (GOLD_PIPS_FOR_TRADE_PLAN_PROFIT_CALC * GOLD_VALUE_PER_PIP_PER_FULL_LOT);
-    groupBaseLots = Math.max(groupBaseLots, MIN_LOT_SIZE_GOLD); // Ensure at least min lot
-
-    const createTradeGroupForGold = (groupNumber: number): TradeGroup => {
-        const trades: TradeDetail[] = [];
-        let remainingLotsForGroup = groupBaseLots;
-        let tradeCounterInGroup = 0;
-
-        while (remainingLotsForGroup > 0 && tradeCounterInGroup < 100) { // Safety break for loop
-            const lotsForThisTrade = parseFloat(
-              Math.min(MAX_LOT_SIZE_GOLD, Math.max(remainingLotsForGroup, MIN_LOT_SIZE_GOLD)).toFixed(GOLD_LOT_PRECISION)
-            );
-            
-            if (lotsForThisTrade < MIN_LOT_SIZE_GOLD && trades.length === 0) { // if first trade is too small
-                 trades.push({
-                    lots: MIN_LOT_SIZE_GOLD.toFixed(GOLD_LOT_PRECISION),
-                    profit: (MIN_LOT_SIZE_GOLD * GOLD_PIPS_FOR_TRADE_PLAN_PROFIT_CALC * GOLD_VALUE_PER_PIP_PER_FULL_LOT).toFixed(2),
-                    percent: ((MIN_LOT_SIZE_GOLD * GOLD_PIPS_FOR_TRADE_PLAN_PROFIT_CALC * GOLD_VALUE_PER_PIP_PER_FULL_LOT / currentBalance) * 100).toFixed(2),
-                    status: '🟡 Pending', tradeNumber: 0,
-                 });
-                 remainingLotsForGroup = 0; // Exit loop
-            } else if (lotsForThisTrade >= MIN_LOT_SIZE_GOLD) {
-                 trades.push({
-                    lots: lotsForThisTrade.toFixed(GOLD_LOT_PRECISION),
-                    profit: (lotsForThisTrade * GOLD_PIPS_FOR_TRADE_PLAN_PROFIT_CALC * GOLD_VALUE_PER_PIP_PER_FULL_LOT).toFixed(2),
-                    percent: ((lotsForThisTrade * GOLD_PIPS_FOR_TRADE_PLAN_PROFIT_CALC * GOLD_VALUE_PER_PIP_PER_FULL_LOT / currentBalance) * 100).toFixed(2),
-                    status: '🟡 Pending', tradeNumber: 0,
-                });
-                remainingLotsForGroup = parseFloat((remainingLotsForGroup - lotsForThisTrade).toFixed(GOLD_LOT_PRECISION + 1)); // reduce remaining
-            } else {
-                break; // remaining is too small for a min lot trade
-            }
-            tradeCounterInGroup++;
-        }
-         // If no trades were created (e.g. groupBaseLots was too small), create one with min lot.
-        if (trades.length === 0) {
-            const minLotProfit = MIN_LOT_SIZE_GOLD * GOLD_PIPS_FOR_TRADE_PLAN_PROFIT_CALC * GOLD_VALUE_PER_PIP_PER_FULL_LOT;
-            trades.push({
-                lots: MIN_LOT_SIZE_GOLD.toFixed(GOLD_LOT_PRECISION),
-                profit: minLotProfit.toFixed(2),
-                percent: ((minLotProfit / currentBalance) * 100).toFixed(2),
-                status: '🟡 Pending', tradeNumber: 0,
-            });
-        }
-
-        const totalLotsForGroup = trades.reduce((sum, trade) => sum + parseFloat(trade.lots), 0);
-        return {
-            groupNumber,
-            trades,
-            totalLots: totalLotsForGroup.toFixed(GOLD_LOT_PRECISION),
-        };
+    const profitForTrade = lotsForTrade * GOLD_STRATEGY_TP_PIPS_FOR_PLAN * GOLD_VALUE_PER_PIP_PER_STANDARD_LOT;
+    const percentForTrade = currentBalance > 0 ? (profitForTrade / currentBalance) * 100 : 0;
+    
+    const tradeDetail: TradeDetail = {
+      lots: lotsForTrade.toFixed(GOLD_LOT_PRECISION),
+      profit: profitForTrade.toFixed(2),
+      percent: percentForTrade.toFixed(2),
+      status: '🟡 Pending',
+      tradeNumber: 0,
     };
 
-    const groups = [createTradeGroupForGold(1), createTradeGroupForGold(2)];
-    const totalTradesRequired = groups.reduce((sum, group) => sum + group.trades.length, 0);
+    const group: TradeGroup = {
+      groupNumber: 1,
+      trades: [tradeDetail],
+      totalLots: lotsForTrade.toFixed(GOLD_LOT_PRECISION),
+    };
 
     return {
-        dailyTarget: dailyTargetMonetaryGold,
-        totalTradesRequired,
-        groups,
+        dailyTarget: profitForTrade, // Actual 2% gain from the Gold strategy trade
+        totalTradesRequired: 1,
+        groups: [group],
     };
   }
 };
@@ -165,45 +124,50 @@ export const calculateTradeGroupsLogic = (currentBalance: number, instrumentType
 export const calculateTradePointsLogic = (params: TradeCalculationParams): TradeCalculationResult => {
   const { entryPrice = 0, direction, customTP, customSL, currentBalance, instrumentType } = params;
 
-  let lotsToRecommendString: string;
+  let calculatedLotsString: string;
   let lotPrecision: number;
   let pipToPriceFactor: number;
-  let valuePerPipPerFullLot: number;
-  let defaultSL: number;
-  let defaultTP: number;
+  let defaultSLPips: number;
+  let defaultTPPips: number;
   let minLot: number;
   let maxLot: number;
-  let lotCalcDivisor: number;
+  let valuePerPipPerLotForCalc: number; // Value per pip for 1 standard lot for the instrument
+
 
   if (instrumentType === 'gold') {
     lotPrecision = GOLD_LOT_PRECISION;
     pipToPriceFactor = GOLD_PIP_TO_PRICE_FACTOR;
-    valuePerPipPerFullLot = GOLD_VALUE_PER_PIP_PER_FULL_LOT;
-    defaultSL = 100; // Gold Strategy SL
-    defaultTP = 200; // Gold Strategy TP
+    defaultSLPips = GOLD_STRATEGY_SL_PIPS_FOR_PLAN;
+    defaultTPPips = GOLD_STRATEGY_TP_PIPS_FOR_PLAN;
     minLot = MIN_LOT_SIZE_GOLD;
     maxLot = MAX_LOT_SIZE_GOLD;
-    lotCalcDivisor = GOLD_LOT_CALC_DIVISOR_FOR_METRIC;
+    valuePerPipPerLotForCalc = GOLD_VALUE_PER_PIP_PER_STANDARD_LOT;
+
+    const slPipsForLot = customSL !== undefined && customSL > 0 ? customSL : defaultSLPips;
+    const amountToRisk = currentBalance * 0.01; // Risk 1% of balance
+    const baseLots = amountToRisk / (slPipsForLot * valuePerPipPerLotForCalc);
+    calculatedLotsString = parseFloat(
+      Math.max(minLot, Math.min(baseLots, maxLot)).toFixed(lotPrecision)
+    ).toFixed(lotPrecision);
+
   } else { // Volatility75
     lotPrecision = V75_LOT_PRECISION;
     pipToPriceFactor = 1; // For V75, 1 pip is 1 price unit
-    valuePerPipPerFullLot = V75_VALUE_PER_PIP_PER_FULL_LOT;
-    defaultSL = V75_STRATEGY_SL_PIPS;
-    defaultTP = V75_STRATEGY_TP_PIPS;
+    defaultSLPips = V75_STRATEGY_SL_PIPS_FOR_PLAN;
+    defaultTPPips = V75_STRATEGY_TP_PIPS_FOR_PLAN;
     minLot = MIN_LOT_SIZE_V75;
     maxLot = MAX_LOT_SIZE_V75;
-    lotCalcDivisor = V75_LOT_CALC_DIVISOR_FOR_METRIC;
+    valuePerPipPerLotForCalc = V75_VALUE_PER_PIP_PER_FULL_LOT;
+    
+    // V75 lot calculation is based on 500 pips = 1% risk for its "recommended lot"
+    const baseLots = (currentBalance * 0.01) / V75_LOT_CALC_BASE_PIPS_FOR_1_PERCENT_RISK;
+     calculatedLotsString = parseFloat(
+      Math.max(minLot, Math.min(baseLots, maxLot)).toFixed(lotPrecision)
+    ).toFixed(lotPrecision);
   }
 
-  const actualCustomTP = customTP !== undefined && customTP > 0 ? customTP : defaultTP;
-  const actualCustomSL = customSL !== undefined && customSL > 0 ? customSL : defaultSL;
-
-  // Lot calculation based on 1% risk over `lotCalcDivisor` pips (e.g., 500 pips from JS)
-  const baseLotsForCalculator = (currentBalance * 0.01) / lotCalcDivisor;
-  lotsToRecommendString = parseFloat(
-      Math.max(minLot, Math.min(baseLotsForCalculator, maxLot)).toFixed(lotPrecision)
-  ).toFixed(lotPrecision);
-
+  const actualCustomTP = customTP !== undefined && customTP > 0 ? customTP : defaultTPPips;
+  const actualCustomSL = customSL !== undefined && customSL > 0 ? customSL : defaultSLPips;
 
   const tpCustomPriceMove = actualCustomTP * pipToPriceFactor;
   const slPriceMove = actualCustomSL * pipToPriceFactor;
@@ -211,17 +175,21 @@ export const calculateTradePointsLogic = (params: TradeCalculationParams): Trade
   const tpCustomVal = direction === 'rise' ? entryPrice + tpCustomPriceMove : entryPrice - tpCustomPriceMove;
   const slVal = direction === 'rise' ? entryPrice - slPriceMove : entryPrice + slPriceMove;
 
-  // Determine price precision based on entryPrice or fallback for instrument type
-  let pricePrecision = instrumentType === 'gold' ? 2 : 3; // Default for Gold is 2, V75 is 3
-  if (entryPrice !== 0 && entryPrice.toString().includes('.')) {
-      pricePrecision = entryPrice.toString().split('.')[1]?.length || (instrumentType === 'gold' ? 2 : 3);
+  let pricePrecision = instrumentType === 'gold' ? 2 : (entryPrice.toString().split('.')[1]?.length || 3);
+   if (entryPrice === 0) { // If entry price is 0, use default precision
+    pricePrecision = instrumentType === 'gold' ? 2 : 3;
+  } else if (entryPrice.toString().includes('.')) {
+    pricePrecision = entryPrice.toString().split('.')[1]?.length || (instrumentType === 'gold' ? 2 : 3);
+  } else { // Whole number entry price
+    pricePrecision = instrumentType === 'gold' ? 2 : 0; // Gold usually has decimals, V75 might not
+    if (instrumentType === 'volatility75' && pricePrecision === 0) pricePrecision = 1; // V75 point often needs 1 decimal
   }
 
 
   return {
       tpCustom: entryPrice > 0 ? tpCustomVal.toFixed(pricePrecision) : "-",
       slPrice: entryPrice > 0 ? slVal.toFixed(pricePrecision) : "-",
-      calculatedLots: currentBalance > 0 && entryPrice > 0 ? lotsToRecommendString : (0).toFixed(lotPrecision),
+      calculatedLots: currentBalance > 0 && entryPrice > 0 ? calculatedLotsString : (0).toFixed(lotPrecision),
   };
 };
 
@@ -235,9 +203,7 @@ export const calculateCompoundingLogic = (initialBalance: number, frequency: Com
   const dailyGrowthRate = 1.02; 
   switch (frequency) {
       case 'daily': days = periods; break;
-      // Assuming 20 trading days in a month for compounding calc, can be adjusted
       case 'monthly': days = periods * 20; break; 
-      // Assuming 250 trading days in a year for compounding calc, can be adjusted
       case 'yearly': days = periods * 250; break; 
       default: days = 0;
   }
@@ -258,7 +224,7 @@ export const calculateWithdrawalLogic = (manualBalance: number): WithdrawalResul
 
   let simulatedBalanceAtStartOfPeriod = manualBalance;
   const dailyGrowthRate = 1.02; 
-  const daysInPeriod = 30; // Aligning with JS: 30 days for withdrawal growth calculation
+  const daysInPeriod = 30; // Use 30 actual days for reversing growth
 
   for (let i = 0; i < daysInPeriod; i++) {
       simulatedBalanceAtStartOfPeriod = simulatedBalanceAtStartOfPeriod / dailyGrowthRate;
@@ -281,7 +247,6 @@ export const getTimezones = (): string[] => {
       // console.warn("Intl.supportedValuesOf('timeZone') failed, using fallback timezones:", e);
     }
   }
-  // Fallback list if Intl.supportedValuesOf is not available or fails
   return [
     'UTC', 'GMT', 'Europe/London', 'Europe/Paris', 'Europe/Berlin', 
     'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
@@ -308,7 +273,6 @@ export const formatCurrentDateTime = (timeZone?: string): string => {
     };
     return new Date().toLocaleString('en-US', options);
   } catch (error) {
-    // console.warn("Timezone error, falling back to local time string:", error);
      const optionsNoError: Intl.DateTimeFormatOptions = { 
         weekday: 'long',
         year: 'numeric',
@@ -322,3 +286,4 @@ export const formatCurrentDateTime = (timeZone?: string): string => {
     return new Date().toLocaleString('en-US', optionsNoError);
   }
 };
+

@@ -64,7 +64,6 @@ export function TradeCalculatorSection({ currentBalance, instrumentType, instrum
   const [entryPrice, setEntryPrice] = useState<string>("");
   const [tradeDirection, setTradeDirection] = useState<TradeDirection>("rise");
   
-  // Set default TP/SL based on instrument type
   const defaultTP = instrumentType === 'volatility75' ? "2000" : "200";
   const defaultSL = instrumentType === 'volatility75' ? "1000" : "100";
 
@@ -85,7 +84,7 @@ export function TradeCalculatorSection({ currentBalance, instrumentType, instrum
     const tpPips = parseInt(customTP);
     const slPips = parseInt(customSL);
 
-    if (isNaN(entry)) {
+    if (isNaN(entry) || entry <=0) { // Entry price should be positive
       toast({ variant: "destructive", title: "Invalid Input", description: "Please enter a valid entry price." });
       return;
     }
@@ -172,3 +171,4 @@ export function TradeCalculatorSection({ currentBalance, instrumentType, instrum
     </Card>
   );
 }
+

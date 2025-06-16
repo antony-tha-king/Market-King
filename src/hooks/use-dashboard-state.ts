@@ -10,21 +10,21 @@ const TARGET_BALANCE = 1000000;
 
 // Gold Specific Constants
 const MIN_LOT_SIZE_GOLD = 0.01;
-const MAX_LOT_SIZE_GOLD = 5; // User specified
+const MAX_LOT_SIZE_GOLD = 5.00; // User specified max
 const GOLD_LOT_PRECISION = 2;
 const GOLD_STRATEGY_SL_PIPS = 100;
 const GOLD_STRATEGY_TP_PIPS = 200;
-const GOLD_LOT_CALC_DIVISOR = 500; // From JS: lot size based on 500 pips = 1% risk
-const GOLD_VALUE_PER_PIP_PER_FULL_LOT = 1; // Assuming 1 pip = $0.01 price move, so $1 profit/loss per pip for 1 full lot
+const GOLD_VALUE_PER_PIP_PER_STANDARD_LOT = 10; // $10 profit/loss per pip for 1 standard lot of Gold
 
 // Volatility 75 Specific Constants
 const MIN_LOT_SIZE_V75 = 0.001;
-const MAX_LOT_SIZE_V75 = 5;
+const MAX_LOT_SIZE_V75 = 5.00;
 const V75_LOT_PRECISION = 3;
-const V75_STRATEGY_SL_PIPS = 1000;
-const V75_STRATEGY_TP_PIPS = 2000;
-const V75_LOT_CALC_DIVISOR = 500; // Lot size based on 500 pips = 1% risk
+const V75_STRATEGY_SL_PIPS = 1000; // Risking 1% over these pips
+const V75_STRATEGY_TP_PIPS = 2000; // Aiming for 2% gain with these pips
+const V75_LOT_CALC_BASE_PIPS_FOR_1_PERCENT_RISK = 500; // Lot size based on 500 pips = 1% risk
 const V75_VALUE_PER_PIP_PER_FULL_LOT = 1; // V75: 1 pip = $1 profit/loss per lot
+
 
 export function useDashboardState(instrumentType: InstrumentType, initialBalanceDefault: number) {
   const [currentBalance, setCurrentBalance] = useState<number>(initialBalanceDefault);
@@ -62,25 +62,21 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
       ...group,
       trades: group.trades.map((trade, index) => {
         let overallTradeIndex = index;
-        let currentGroupIndex = 0;
-        for(const prevGroup of basePlan.groups){
-            if(prevGroup.groupNumber < group.groupNumber){
-                overallTradeIndex += prevGroup.trades.length;
-            } else {
-                break;
-            }
-            currentGroupIndex++;
+        // Correctly calculate overallTradeIndex based on previous groups' trade counts
+        for(let i = 0; i < basePlan.groups.findIndex(g => g.groupNumber === group.groupNumber); i++) {
+            overallTradeIndex += basePlan.groups[i].trades.length;
         }
         return {
           ...trade,
           status: tradesToday > overallTradeIndex ? '✅ Completed' : '🟡 Pending',
-          tradeNumber: overallTradeIndex,
+          tradeNumber: overallTradeIndex, // trade.tradeNumber is already set correctly by calculateTradeGroupsLogic
         } as const;
       })
     }));
 
     setTradePlan({
       ...basePlan,
+      groups: updatedGroups, // Use the updated groups with correct status
       completedTrades: tradesToday,
       remainingTrades: Math.max(basePlan.totalTradesRequired - tradesToday, 0),
     });
@@ -113,13 +109,9 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
       setLocalStorageItem(getLsKey('lastTradeDate'), today);
     }
     
-    // Increment tradesToday only if the balance actually changes, 
-    // and it's not just a page load with the same balance.
-    // This assumes an "update" implies a trade or end-of-day balance entry.
     if (newBalance !== currentBalance || getLocalStorageItem<number>(getLsKey('currentBalance'), initialBalanceDefault) !== newBalance ) {
         updatedTradesToday++;
     }
-
 
     setTradesToday(updatedTradesToday);
     setCurrentBalance(newBalance);
@@ -144,7 +136,7 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
 
   useEffect(() => {
     checkEndOfMonthReminder();
-    const intervalId = setInterval(checkEndOfMonthReminder, 1000 * 60 * 60 * 6); // Check every 6 hours
+    const intervalId = setInterval(checkEndOfMonthReminder, 1000 * 60 * 60 * 6); 
     return () => clearInterval(intervalId);
   }, [checkEndOfMonthReminder]);
 
@@ -157,34 +149,36 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
 
   if (instrumentType === 'volatility75') {
     lotPrecision = V75_LOT_PRECISION;
-    const baseLots = (currentBalance * 0.01) / V75_LOT_CALC_DIVISOR;
-    const actualRecLotsUsedForCalc = parseFloat(
-      Math.max(MIN_LOT_SIZE_V75, Math.min(baseLots, MAX_LOT_SIZE_V75)).toFixed(lotPrecision)
+    const baseLotsV75 = (currentBalance * 0.01) / V75_LOT_CALC_BASE_PIPS_FOR_1_PERCENT_RISK;
+    const actualRecLotsV75 = parseFloat(
+      Math.max(MIN_LOT_SIZE_V75, Math.min(baseLotsV75, MAX_LOT_SIZE_V75)).toFixed(lotPrecision)
     );
-    recLotsString = actualRecLotsUsedForCalc.toFixed(lotPrecision);
+    recLotsString = actualRecLotsV75.toFixed(lotPrecision);
 
-    dailyTargetValue = actualRecLotsUsedForCalc * V75_STRATEGY_TP_PIPS * V75_VALUE_PER_PIP_PER_FULL_LOT;
-    riskMetricValue = actualRecLotsUsedForCalc * V75_STRATEGY_SL_PIPS * V75_VALUE_PER_PIP_PER_FULL_LOT;
+    // Actual monetary risk and target based on rounded lot size and V75 strategy pips
+    riskMetricValue = actualRecLotsV75 * V75_STRATEGY_SL_PIPS * V75_VALUE_PER_PIP_PER_FULL_LOT;
+    dailyTargetValue = actualRecLotsV75 * V75_STRATEGY_TP_PIPS * V75_VALUE_PER_PIP_PER_FULL_LOT;
 
-    const targetPercent = currentBalance > 0 ? (dailyTargetValue / currentBalance * 100).toFixed(1) : '0.0';
     const riskPercent = currentBalance > 0 ? (riskMetricValue / currentBalance * 100).toFixed(1) : '0.0';
+    const targetPercent = currentBalance > 0 ? (dailyTargetValue / currentBalance * 100).toFixed(1) : '0.0';
 
     dailyTargetLabel = `Today's Target (${targetPercent}%)`;
     riskMetricLabel = `Trade Risk (${riskPercent}%)`;
 
   } else { // Gold
     lotPrecision = GOLD_LOT_PRECISION;
-    const baseLots = (currentBalance * 0.01) / GOLD_LOT_CALC_DIVISOR;
-    const actualRecLotsUsedForCalc = parseFloat(
-      Math.max(MIN_LOT_SIZE_GOLD, Math.min(baseLots, MAX_LOT_SIZE_GOLD)).toFixed(lotPrecision)
+    const amountToRiskGold = currentBalance * 0.01; // Risk 1%
+    const baseLotsGold = amountToRiskGold / (GOLD_STRATEGY_SL_PIPS * GOLD_VALUE_PER_PIP_PER_STANDARD_LOT);
+    const actualRecLotsGold = parseFloat(
+      Math.max(MIN_LOT_SIZE_GOLD, Math.min(baseLotsGold, MAX_LOT_SIZE_GOLD)).toFixed(lotPrecision)
     );
-    recLotsString = actualRecLotsUsedForCalc.toFixed(lotPrecision);
+    recLotsString = actualRecLotsGold.toFixed(lotPrecision);
 
-    dailyTargetValue = actualRecLotsUsedForCalc * GOLD_STRATEGY_TP_PIPS * GOLD_VALUE_PER_PIP_PER_FULL_LOT;
-    riskMetricValue = actualRecLotsUsedForCalc * GOLD_STRATEGY_SL_PIPS * GOLD_VALUE_PER_PIP_PER_FULL_LOT;
+    riskMetricValue = actualRecLotsGold * GOLD_STRATEGY_SL_PIPS * GOLD_VALUE_PER_PIP_PER_STANDARD_LOT;
+    dailyTargetValue = actualRecLotsGold * GOLD_STRATEGY_TP_PIPS * GOLD_VALUE_PER_PIP_PER_STANDARD_LOT;
     
-    const targetPercent = currentBalance > 0 ? (dailyTargetValue / currentBalance * 100).toFixed(1) : '0.0';
     const riskPercent = currentBalance > 0 ? (riskMetricValue / currentBalance * 100).toFixed(1) : '0.0';
+    const targetPercent = currentBalance > 0 ? (dailyTargetValue / currentBalance * 100).toFixed(1) : '0.0';
 
     dailyTargetLabel = `Today's Target (${targetPercent}%)`;
     riskMetricLabel = `Trade Risk (${riskPercent}%)`;
@@ -194,7 +188,7 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
     { label: "Current Balance", value: currentBalance.toFixed(2), unit: "$", id: `${instrumentType}-currentBalance` },
     {
       label: "Days to Target",
-      value: currentBalance > 0 && currentBalance < TARGET_BALANCE && dailyTargetValue > currentBalance * 0.001 ? // ensure target is meaningful
+      value: currentBalance > 0 && currentBalance < TARGET_BALANCE && dailyTargetValue > 0 && (dailyTargetValue / currentBalance) > 0.0001 ? // ensure target is meaningful positive growth
              Math.ceil(Math.log(TARGET_BALANCE / currentBalance) / Math.log(1 + (dailyTargetValue / currentBalance)))
              : (currentBalance >= TARGET_BALANCE ? 0 : "-"),
       id: `${instrumentType}-daysRemaining`
