@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -63,10 +63,22 @@ const ResultItem = ({ label, value, idSuffix }: ResultItemProps) => {
 export function TradeCalculatorSection({ currentBalance, instrumentType, instrumentName }: TradeCalculatorSectionProps) {
   const [entryPrice, setEntryPrice] = useState<string>("");
   const [tradeDirection, setTradeDirection] = useState<TradeDirection>("rise");
-  const [customTP, setCustomTP] = useState<string>(instrumentType === 'volatility75' ? "2000" : "500");
-  const [customSL, setCustomSL] = useState<string>(instrumentType === 'volatility75' ? "1000" : "500");
+  
+  // Set default TP/SL based on instrument type
+  const defaultTP = instrumentType === 'volatility75' ? "2000" : "200";
+  const defaultSL = instrumentType === 'volatility75' ? "1000" : "100";
+
+  const [customTP, setCustomTP] = useState<string>(defaultTP);
+  const [customSL, setCustomSL] = useState<string>(defaultSL);
+  
   const [results, setResults] = useState<TradeCalculationResult | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setCustomTP(instrumentType === 'volatility75' ? "2000" : "200");
+    setCustomSL(instrumentType === 'volatility75' ? "1000" : "100");
+  }, [instrumentType]);
+
 
   const handleCalculate = () => {
     const entry = parseFloat(entryPrice);
@@ -126,11 +138,23 @@ export function TradeCalculatorSection({ currentBalance, instrumentType, instrum
           </div>
           <div>
             <Label htmlFor="customTPCalc" className="text-foreground/80">Custom Take Profit (pips)</Label>
-            <Input id="customTPCalc" type="number" placeholder={instrumentType === 'volatility75' ? "e.g., 2000" : "e.g., 500"} value={customTP} onChange={(e) => setCustomTP(e.target.value)} />
+            <Input 
+              id="customTPCalc" 
+              type="number" 
+              placeholder={instrumentType === 'volatility75' ? "e.g., 2000" : "e.g., 200"} 
+              value={customTP} 
+              onChange={(e) => setCustomTP(e.target.value)} 
+            />
           </div>
            <div>
             <Label htmlFor="customSLCalc" className="text-foreground/80">Custom Stop Loss (pips)</Label>
-            <Input id="customSLCalc" type="number" placeholder={instrumentType === 'volatility75' ? "e.g., 1000" : "e.g., 500"} value={customSL} onChange={(e) => setCustomSL(e.target.value)} />
+            <Input 
+              id="customSLCalc" 
+              type="number" 
+              placeholder={instrumentType === 'volatility75' ? "e.g., 1000" : "e.g., 100"} 
+              value={customSL} 
+              onChange={(e) => setCustomSL(e.target.value)} 
+            />
           </div>
         </div>
         <Button onClick={handleCalculate} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground mb-6 py-3 text-base">

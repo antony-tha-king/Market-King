@@ -1,3 +1,4 @@
+
 export interface Metric {
   label: string;
   value: string | number;
@@ -21,7 +22,7 @@ export interface TradeGroup {
 }
 
 export interface TradePlan {
-  dailyTarget: number;
+  dailyTarget: number; // Monetary value
   totalTradesRequired: number;
   completedTrades: number;
   remainingTrades: number;
@@ -40,8 +41,7 @@ export interface TradeCalculationParams {
 }
 
 export interface TradeCalculationResult {
-  tp1000: string; // Renamed from tp500
-  tp2000: string; // Renamed from tp3000
+  // tp1000 and tp2000 removed as per user request to simplify UI
   tpCustom: string;
   slPrice: string;
   calculatedLots: string;
