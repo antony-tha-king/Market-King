@@ -1,6 +1,7 @@
+
 "use client";
 
-import { MessageCircle } from "lucide-react";
+import { MessageSquare } from "lucide-react"; // Changed from MessageCircle
 import { Button } from "@/components/ui/button";
 
 export function WhatsAppButton() {
@@ -19,7 +20,7 @@ export function WhatsAppButton() {
       onClick={redirectToWhatsApp}
       aria-label="Contact on WhatsApp"
     >
-      <MessageCircle className="h-8 w-8" />
+      <MessageSquare className="h-8 w-8" /> {/* Changed from MessageCircle */}
     </Button>
   );
 }
