@@ -181,7 +181,7 @@ export function TradingSessions({ variant = 'card' }: TradingSessionsProps) {
     const MainContent = (
         <div className={cn(
             "relative w-full bg-card rounded-3xl border border-border overflow-hidden shadow-2xl transition-all duration-300",
-            variant === 'nav' ? "p-4 w-[95vw] max-w-[920px]" : "p-8"
+            variant === 'nav' ? "p-3 sm:p-4 w-[95vw] max-w-[920px]" : "p-8"
         )}>
             {/* Background Circuit Effect */}
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
@@ -192,7 +192,7 @@ export function TradingSessions({ variant = 'card' }: TradingSessionsProps) {
                 variant === 'nav' ? "gap-4" : "gap-10"
             )}>
                 {/* Header with Controls */}
-                <div className="flex justify-between items-center gap-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-blue-500/10 rounded-lg">
                             <Globe2 className={cn(variant === 'nav' ? "w-5 h-5" : "w-6 h-6", "text-blue-400")} />
@@ -209,13 +209,13 @@ export function TradingSessions({ variant = 'card' }: TradingSessionsProps) {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-6">
+                    <div className="flex flex-row flex-wrap items-center justify-between w-full md:w-auto gap-4 md:gap-6">
                         {/* Searchable Timezone Selector */}
-                        <div className="flex flex-col gap-1">
-                            <span className="text-[8px] font-black tracking-widest text-muted-foreground/30 uppercase text-right">Timezone Search</span>
+                        <div className="flex flex-col gap-1 flex-1 md:flex-none">
+                            <span className="text-[8px] font-black tracking-widest text-muted-foreground/30 uppercase md:text-right">Timezone Search</span>
                             <div className="flex items-center gap-2">
                                 <Select value={selectedTimezone} onValueChange={setSelectedTimezone}>
-                                    <SelectTrigger className="w-40 h-8 bg-muted/50 border-border text-foreground text-[10px] font-bold rounded-xl hover:bg-muted transition-colors">
+                                    <SelectTrigger className="w-full md:w-40 h-8 bg-muted/50 border-border text-foreground text-[10px] font-bold rounded-xl hover:bg-muted transition-colors">
                                         <SelectValue placeholder="Search Timezone" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-popover border-border text-popover-foreground w-64 p-0">
@@ -255,7 +255,7 @@ export function TradingSessions({ variant = 'card' }: TradingSessionsProps) {
                         </div>
 
                         {/* Format Toggle */}
-                        <div className="flex flex-col gap-1 items-center">
+                        <div className="flex flex-col gap-1 items-center shrink-0">
                             <span className="text-[8px] font-black tracking-widest text-muted-foreground/30 uppercase">Format</span>
                             <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-xl border border-border h-8 px-2">
                                 <span className={cn("text-[8px] font-black tracking-tighter", !is24Hour ? "text-cyan-400" : "text-muted-foreground/40")}>12H</span>
@@ -491,7 +491,7 @@ export function TradingSessions({ variant = 'card' }: TradingSessionsProps) {
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent
-                    className="w-fit p-0 border-none bg-transparent shadow-[0_0_100px_rgba(0,0,0,0.5)] mr-4 mt-3 max-h-[90vh] overflow-y-auto scrollbar-hide"
+                    className="w-fit p-0 border-none bg-transparent shadow-[0_0_100px_rgba(0,0,0,0.5)] mr-2 md:mr-4 mt-3 max-h-[85vh] overflow-y-auto scrollbar-hide"
                     align="end"
                     sideOffset={12}
                 >
