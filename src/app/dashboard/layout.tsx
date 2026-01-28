@@ -25,7 +25,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between gap-4">
-          <div className="flex items-center gap-2 md:gap-4 overflow-hidden">
+          <div className="flex items-center gap-2 md:gap-4 overflow-hidden shrink-0">
             <Link href="/" className="text-xl md:text-2xl font-bold text-primary font-headline shrink-0">
               Trade Hub
             </Link>
@@ -40,7 +40,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             )}
           </div>
 
-          <nav className="flex items-center space-x-2 md:space-x-3 overflow-x-auto scrollbar-hide py-1">
+          <nav className="flex items-center space-x-2 md:space-x-3 py-1">
             <div className="hidden lg:flex items-center gap-3 mr-2">
               <MarketFAQ />
               <VolumeWidget />
@@ -60,6 +60,19 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </Button>
             </Link>
           </nav>
+        </div>
+
+        {/* Secondary Navigation bar for Mobile Devices */}
+        <div className="lg:hidden border-t bg-background/50 overflow-x-auto scrollbar-hide">
+          <div className="container h-12 flex items-center justify-center gap-4 min-w-max px-4">
+            <MarketFAQ />
+            <div className="h-4 w-[1px] bg-border/50" />
+            <VolumeWidget />
+            <div className="h-4 w-[1px] bg-border/50" />
+            <ClockWidget />
+            <div className="h-4 w-[1px] bg-border/50" />
+            <TimerWidget />
+          </div>
         </div>
       </header>
       <main className="flex-grow container mx-auto p-4 md:p-8">
