@@ -30,7 +30,14 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Globe2, ChevronDown, Clock, Search } from 'lucide-react';
+import { Globe2, ChevronDown, Clock, Search, X } from 'lucide-react';
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+    Dialog,
+    DialogContent,
+    DialogTrigger,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 const SESSION_METRICS: Record<string, { vol: string; change: string; pairs: string }> = {
     'Sydney': { vol: '0.8M', change: '+0.32%', pairs: '110' },
@@ -70,6 +77,7 @@ interface TradingSessionsProps {
 }
 
 export function TradingSessions({ variant = 'card' }: TradingSessionsProps) {
+    const isMobile = useIsMobile();
     const [currentTime, setCurrentTime] = useState(new Date());
     const [selectedTimezone, setSelectedTimezone] = useState<string>(() => {
         return getLocalStorageItem('market_king_timezone',
@@ -180,8 +188,8 @@ export function TradingSessions({ variant = 'card' }: TradingSessionsProps) {
 
     const MainContent = (
         <div className={cn(
-            "relative w-full bg-card rounded-3xl border border-border overflow-hidden shadow-2xl transition-all duration-300",
-            variant === 'nav' ? "p-3 sm:p-4 w-[95vw] max-w-[920px]" : "p-8"
+            "relative bg-card rounded-3xl border border-border overflow-hidden shadow-2xl transition-all duration-300",
+            variant === 'nav' ? "p-3 sm:p-4 w-full max-w-[920px]" : "p-8 w-full"
         )}>
             {/* Background Circuit Effect */}
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
@@ -458,40 +466,58 @@ export function TradingSessions({ variant = 'card' }: TradingSessionsProps) {
     );
 
     if (variant === 'nav') {
+        const trigger = (
+            <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                    "h-10 px-4 flex items-center gap-3 rounded-2xl border transition-all duration-300 font-headline group active:scale-95",
+                    activeSessions.length > 0
+                        ? "border-cyan-500/30 bg-cyan-500/5 shadow-[0_0_15px_rgba(34,211,238,0.1)] hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(34,211,238,0.2)]"
+                        : "border-border hover:bg-muted/50 hover:border-foreground/20"
+                )}
+            >
+                <Globe2 className={cn("h-4.5 w-4.5 transition-transform duration-500 group-hover:rotate-180", activeSessions.length > 0 ? "text-cyan-400" : "text-muted-foreground/40")} />
+                <div className="flex flex-col items-start leading-none gap-0.5">
+                    <span className="text-xs font-black tracking-tight text-foreground/90">Sessions</span>
+                    {activeSessions.length > 0 ? (
+                        <div className="flex items-center gap-1.5">
+                            <div className="flex -space-x-1">
+                                {activeSessions.slice(0, 3).map(s => (
+                                    <div key={s.name} className="w-1.5 h-1.5 rounded-full border border-background shadow-[0_0_3px_rgba(255,255,255,0.2)]" style={{ backgroundColor: s.color }} />
+                                ))}
+                            </div>
+                            <span className="text-[9px] font-black text-cyan-400/80 uppercase tracking-tighter">{activeSessions[0].name}</span>
+                        </div>
+                    ) : (
+                        <span className="text-[9px] font-black text-muted-foreground/20 uppercase tracking-tighter">Closed</span>
+                    )}
+                </div>
+                <ChevronDown className="h-4 w-4 opacity-30 group-data-[state=open]:rotate-180 transition-transform" />
+            </Button>
+        );
+
+        if (isMobile) {
+            return (
+                <Dialog>
+                    <DialogTrigger asChild>
+                        {trigger}
+                    </DialogTrigger>
+                    <DialogContent className="p-0 border-none bg-transparent shadow-none max-w-[90vw] w-[90vw] top-[55%]">
+                        <DialogTitle className="sr-only">Live Sessions</DialogTitle>
+                        {MainContent}
+                    </DialogContent>
+                </Dialog>
+            );
+        }
+
         return (
             <Popover>
                 <PopoverTrigger asChild>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className={cn(
-                            "h-10 px-4 flex items-center gap-3 rounded-2xl border transition-all duration-300 font-headline group active:scale-95",
-                            activeSessions.length > 0
-                                ? "border-cyan-500/30 bg-cyan-500/5 shadow-[0_0_15px_rgba(34,211,238,0.1)] hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(34,211,238,0.2)]"
-                                : "border-border hover:bg-muted/50 hover:border-foreground/20"
-                        )}
-                    >
-                        <Globe2 className={cn("h-4.5 w-4.5 transition-transform duration-500 group-hover:rotate-180", activeSessions.length > 0 ? "text-cyan-400" : "text-muted-foreground/40")} />
-                        <div className="flex flex-col items-start leading-none gap-0.5">
-                            <span className="text-xs font-black tracking-tight text-foreground/90">Sessions</span>
-                            {activeSessions.length > 0 ? (
-                                <div className="flex items-center gap-1.5">
-                                    <div className="flex -space-x-1">
-                                        {activeSessions.slice(0, 3).map(s => (
-                                            <div key={s.name} className="w-1.5 h-1.5 rounded-full border border-background shadow-[0_0_3px_rgba(255,255,255,0.2)]" style={{ backgroundColor: s.color }} />
-                                        ))}
-                                    </div>
-                                    <span className="text-[9px] font-black text-cyan-400/80 uppercase tracking-tighter">{activeSessions[0].name}</span>
-                                </div>
-                            ) : (
-                                <span className="text-[9px] font-black text-muted-foreground/20 uppercase tracking-tighter">Closed</span>
-                            )}
-                        </div>
-                        <ChevronDown className="h-4 w-4 opacity-30 group-data-[state=open]:rotate-180 transition-transform" />
-                    </Button>
+                    {trigger}
                 </PopoverTrigger>
                 <PopoverContent
-                    className="w-fit p-0 border-none bg-transparent shadow-[0_0_100px_rgba(0,0,0,0.5)] mr-2 md:mr-4 mt-3 max-h-[85vh] overflow-y-auto scrollbar-hide"
+                    className="w-fit p-0 border-none bg-transparent shadow-[0_0_100px_rgba(0,0,0,0.5)] mt-3 max-h-[85vh] overflow-y-auto scrollbar-hide"
                     align="end"
                     sideOffset={12}
                 >
