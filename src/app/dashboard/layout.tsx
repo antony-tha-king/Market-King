@@ -22,19 +22,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const instrumentName = getInstrumentName();
 
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden">
-      {/* Floating Utilities for Mobile - Anchored top right for stability */}
-      <div className="lg:hidden fixed top-3 right-4 z-[60] flex items-center gap-2 px-2 py-1.5 rounded-2xl bg-background/80 backdrop-blur-md border shadow-lg shadow-black/20 ring-1 ring-white/5 transition-all active:scale-95">
-        <DarkModeToggle />
-        <div className="h-4 w-[1px] bg-border/50 mx-1" />
-        <Link href="/">
-          <Button variant="outline" size="icon" className="h-8 w-8 rounded-xl border-none hover:bg-red-500/10 hover:text-red-500">
-            <LogOut className="h-4 w-4" />
-          </Button>
-        </Link>
-      </div>
-
-      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="min-h-screen flex flex-col relative overflow-x-hidden">
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-xl shadow-md supports-[backdrop-filter]:bg-background/80">
+        {/* Row 1: Brand & Current Market Navigation */}
         <div className="container flex h-16 items-center justify-between gap-4">
           <div className="flex items-center gap-2 md:gap-4 overflow-hidden shrink-0">
             <Link href="/" className="text-xl md:text-2xl font-bold text-primary font-headline shrink-0">
@@ -44,14 +34,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             {instrumentName && (
               <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
                 <ChevronRight className="h-4 w-4 text-muted-foreground/30 shrink-0" />
-                <span className="text-sm md:text-lg font-black tracking-tighter text-foreground/80 truncate max-w-[80px] sm:max-w-none">
+                <span className="text-sm md:text-lg font-black tracking-tighter text-foreground/80 truncate max-w-[120px] sm:max-w-none">
                   {instrumentName}
                 </span>
               </div>
             )}
           </div>
 
-          <nav className="flex items-center space-x-2 md:space-x-3 py-1 lg:pr-0 pr-20">
+          <nav className="flex items-center space-x-2 md:space-x-3 py-1">
             <div className="hidden lg:flex items-center gap-3 mr-2">
               <MarketFAQ />
               <VolumeWidget />
@@ -74,19 +64,31 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </nav>
         </div>
 
-        {/* Secondary Navigation bar for Mobile Devices - Optimized Scrollable Strip */}
-        <div className="lg:hidden border-t bg-background/40 overflow-x-auto scrollbar-hide py-2.5">
-          <div className="flex items-center justify-center gap-4 px-6 min-w-max">
+        {/* Row 2: Secondary Stats & Mobile Utilities - Optimized Scrollable Strip */}
+        <div className="lg:hidden border-t bg-background/60 overflow-x-auto scrollbar-hide py-3">
+          <div className="flex items-center justify-center gap-5 px-6 min-w-max">
             <MarketFAQ />
-            <div className="h-4 w-[1px] bg-border/30" />
+            <div className="h-4 w-[1px] bg-border/40" />
             <VolumeWidget />
-            <div className="h-4 w-[1px] bg-border/30" />
+            <div className="h-4 w-[1px] bg-border/40" />
             <ClockWidget />
-            <div className="h-4 w-[1px] bg-border/30" />
+            <div className="h-4 w-[1px] bg-border/40" />
             <TimerWidget />
+
+            {/* Mobile-only utilities integrated into scroll */}
+            <div className="h-4 w-[1px] bg-border/40 ml-1" />
+            <div className="flex items-center gap-3">
+              <DarkModeToggle />
+              <Link href="/">
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-red-500/10 hover:text-red-500">
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
+
       <main className="flex-grow container mx-auto p-4 md:p-8">
         {children}
       </main>
