@@ -22,8 +22,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const instrumentName = getInstrumentName();
 
   return (
-    <div className="min-h-screen flex flex-col relative overflow-x-hidden">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-xl shadow-md supports-[backdrop-filter]:bg-background/80">
+    <div className="min-h-screen flex flex-col">
+      <header className="sticky top-0 z-[100] w-full border-b bg-background/95 backdrop-blur-xl shadow-md supports-[backdrop-filter]:bg-background/80" style={{ position: '-webkit-sticky' } as React.CSSProperties}>
         {/* Row 1: Brand & Current Market Navigation */}
         <div className="container flex h-16 items-center justify-between gap-4">
           <div className="flex items-center gap-2 md:gap-4 overflow-hidden shrink-0">
