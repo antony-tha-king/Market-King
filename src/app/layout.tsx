@@ -1,4 +1,4 @@
-import type {Metadata} from 'next';
+import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -6,6 +6,12 @@ import { ThemeProvider } from "@/components/theme-provider";
 export const metadata: Metadata = {
   title: 'Trade Hub',
   description: 'Precision Trading Tracker for Volatility 75 and Gold',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
 };
 
 export default function RootLayout({
