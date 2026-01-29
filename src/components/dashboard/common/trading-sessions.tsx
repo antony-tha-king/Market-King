@@ -22,13 +22,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Globe2, ChevronDown, Clock, Search, X } from 'lucide-react';
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -86,6 +79,7 @@ export function TradingSessions({ variant = 'card' }: TradingSessionsProps) {
     });
     const [is24Hour, setIs24Hour] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [timezoneOpen, setTimezoneOpen] = useState(false);
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -222,11 +216,22 @@ export function TradingSessions({ variant = 'card' }: TradingSessionsProps) {
                         <div className="flex flex-col gap-1 flex-1 md:flex-none">
                             <span className="text-[8px] font-black tracking-widest text-muted-foreground/30 uppercase md:text-right">Timezone Search</span>
                             <div className="flex items-center gap-2">
-                                <Select value={selectedTimezone} onValueChange={setSelectedTimezone}>
-                                    <SelectTrigger className="w-full md:w-40 h-8 bg-muted/50 border-border text-foreground text-[10px] font-bold rounded-xl hover:bg-muted transition-colors">
-                                        <SelectValue placeholder="Search Timezone" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-popover border-border text-popover-foreground w-64 p-0">
+                                <Popover open={timezoneOpen} onOpenChange={setTimezoneOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button 
+                                            variant="outline" 
+                                            role="combobox"
+                                            aria-expanded={timezoneOpen}
+                                            className="w-full md:w-40 h-8 bg-muted/50 border-border text-foreground text-[10px] font-bold rounded-xl hover:bg-muted transition-colors justify-between px-3"
+                                        >
+                                            {selectedTimezone ? selectedTimezone.replace('_', ' ') : "Search Timezone"}
+                                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent 
+                                        className="bg-popover border-border text-popover-foreground w-64 p-0 z-[300]" 
+                                        style={{ zIndex: 300 }}
+                                    >
                                         <div className="p-2 border-b border-border sticky top-0 bg-popover z-20">
                                             <div className="relative">
                                                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground/30" />
@@ -235,23 +240,34 @@ export function TradingSessions({ variant = 'card' }: TradingSessionsProps) {
                                                     value={searchQuery}
                                                     onChange={(e) => setSearchQuery(e.target.value)}
                                                     className="h-7 pl-7 bg-muted/50 border-border text-[10px] focus:ring-cyan-500/50"
-                                                    onKeyDown={(e) => e.stopPropagation()}
                                                 />
                                             </div>
                                         </div>
                                         <ScrollArea className="h-48">
                                             {filteredTimezones.length > 0 ? (
-                                                filteredTimezones.map(tz => (
-                                                    <SelectItem key={tz} value={tz} className="text-[10px] font-bold focus:bg-cyan-500/10 focus:text-cyan-400 cursor-pointer">
-                                                        {tz.replace('_', ' ')}
-                                                    </SelectItem>
-                                                ))
+                                                <div className="flex flex-col p-1">
+                                                    {filteredTimezones.map(tz => (
+                                                        <div
+                                                            key={tz}
+                                                            className={cn(
+                                                                "relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 px-2 text-[10px] font-bold outline-none hover:bg-cyan-500/10 hover:text-cyan-400",
+                                                                selectedTimezone === tz && "bg-cyan-500/10 text-cyan-400"
+                                                            )}
+                                                            onClick={() => {
+                                                                setSelectedTimezone(tz);
+                                                                setTimezoneOpen(false);
+                                                            }}
+                                                        >
+                                                            {tz.replace('_', ' ')}
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             ) : (
                                                 <div className="p-4 text-[10px] text-muted-foreground/40 text-center">No matching regions</div>
                                             )}
                                         </ScrollArea>
-                                    </SelectContent>
-                                </Select>
+                                    </PopoverContent>
+                                </Popover>
                                 <Button
                                     size="sm"
                                     onClick={() => setSelectedTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone)}
