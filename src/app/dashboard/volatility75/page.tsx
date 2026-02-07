@@ -22,6 +22,7 @@ export default function Volatility75Page() {
     tradePlan,
     metrics,
     handleUpdateBalance,
+    isShieldActive,
   } = useDashboardState(INSTRUMENT_TYPE, INITIAL_BALANCE_DEFAULT);
 
   return (
@@ -53,6 +54,7 @@ export default function Volatility75Page() {
         currentBalance={currentBalance}
         instrumentType={INSTRUMENT_TYPE}
         instrumentName={INSTRUMENT_NAME}
+        isShieldActive={isShieldActive}
       />
 
       <CompoundingCalculatorSection />

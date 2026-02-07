@@ -5,6 +5,9 @@ export interface Metric {
   unit?: string;
   copyable?: boolean;
   id?: string;
+  onAction?: () => void;
+  actionIcon?: 'shield';
+  isActive?: boolean;
 }
 
 export interface TradeDetail {

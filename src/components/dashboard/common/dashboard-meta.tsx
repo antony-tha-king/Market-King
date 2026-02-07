@@ -132,6 +132,14 @@ export function TimerWidget() {
     useEffect(() => {
         if (!mounted) return;
 
+        const handleAutoStart = () => {
+            if (!timerActive) {
+                handleStart();
+            }
+        };
+
+        window.addEventListener('start-trade-timer', handleAutoStart);
+
         if (timerActive) {
             // If we just started, or resumed from storage
             if (!startTimeRef.current) {
@@ -149,6 +157,7 @@ export function TimerWidget() {
         }
 
         return () => {
+            window.removeEventListener('start-trade-timer', handleAutoStart);
             if (timerRef.current) clearInterval(timerRef.current);
         };
     }, [timerActive, mounted]);

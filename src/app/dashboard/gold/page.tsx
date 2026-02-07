@@ -22,6 +22,7 @@ export default function GoldPage() {
     tradePlan,
     metrics,
     handleUpdateBalance,
+    isShieldActive,
   } = useDashboardState(INSTRUMENT_TYPE, INITIAL_BALANCE_DEFAULT);
 
   return (
@@ -55,6 +56,7 @@ export default function GoldPage() {
         currentBalance={currentBalance}
         instrumentType={INSTRUMENT_TYPE}
         instrumentName={INSTRUMENT_NAME}
+        isShieldActive={isShieldActive}
       />
 
       <CompoundingCalculatorSection />

@@ -10,12 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import type { TradeDirection, TradeCalculationResult, InstrumentType } from "@/lib/types";
 import { calculateTradePointsLogic } from "@/lib/utils";
-import { ArrowDownLeft, ArrowUpRight, Copy } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Copy, Shield, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TradeCalculatorSectionProps {
   currentBalance: number;
   instrumentType: InstrumentType;
   instrumentName: string;
+  isShieldActive?: boolean;
 }
 
 interface ResultItemProps {
@@ -60,23 +62,32 @@ const ResultItem = ({ label, value, idSuffix }: ResultItemProps) => {
 };
 
 
-export function TradeCalculatorSection({ currentBalance, instrumentType, instrumentName }: TradeCalculatorSectionProps) {
+export function TradeCalculatorSection({ currentBalance, instrumentType, instrumentName, isShieldActive }: TradeCalculatorSectionProps) {
   const [entryPrice, setEntryPrice] = useState<string>("");
   const [tradeDirection, setTradeDirection] = useState<TradeDirection>("rise");
-  
-  const defaultTP = instrumentType === 'volatility75' ? "2000" : "200";
-  const defaultSL = instrumentType === 'volatility75' ? "1000" : "100";
 
-  const [customTP, setCustomTP] = useState<string>(defaultTP);
-  const [customSL, setCustomSL] = useState<string>(defaultSL);
-  
+  const getDefaults = () => {
+    let tp = instrumentType === 'volatility75' ? "2000" : "200";
+    let sl = instrumentType === 'volatility75' ? "1000" : "100";
+
+    if (isShieldActive) {
+      tp = (parseInt(tp) * 2).toString();
+      sl = (parseInt(sl) * 2).toString();
+    }
+    return { tp, sl };
+  };
+
+  const [customTP, setCustomTP] = useState<string>("");
+  const [customSL, setCustomSL] = useState<string>("");
+
   const [results, setResults] = useState<TradeCalculationResult | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    setCustomTP(instrumentType === 'volatility75' ? "2000" : "200");
-    setCustomSL(instrumentType === 'volatility75' ? "1000" : "100");
-  }, [instrumentType]);
+    const { tp, sl } = getDefaults();
+    setCustomTP(tp);
+    setCustomSL(sl);
+  }, [instrumentType, isShieldActive]);
 
 
   const handleCalculate = () => {
@@ -84,15 +95,15 @@ export function TradeCalculatorSection({ currentBalance, instrumentType, instrum
     const tpPips = parseInt(customTP);
     const slPips = parseInt(customSL);
 
-    if (isNaN(entry) || entry <=0) { // Entry price should be positive
+    if (isNaN(entry) || entry <= 0) {
       toast({ variant: "destructive", title: "Invalid Input", description: "Please enter a valid entry price." });
       return;
     }
-    if (isNaN(tpPips) || tpPips <=0) {
+    if (isNaN(tpPips) || tpPips <= 0) {
       toast({ variant: "destructive", title: "Invalid Input", description: "Please enter valid pips for Custom TP (must be > 0)." });
       return;
     }
-     if (isNaN(slPips) || slPips <=0) {
+    if (isNaN(slPips) || slPips <= 0) {
       toast({ variant: "destructive", title: "Invalid Input", description: "Please enter valid pips for Custom SL (must be > 0)." });
       return;
     }
@@ -105,6 +116,17 @@ export function TradeCalculatorSection({ currentBalance, instrumentType, instrum
       currentBalance,
       instrumentType,
     });
+
+    // If shield is active globally, our calculateTradePointsLogic might still return 1% risk lots.
+    // However, the hook already halved them globally.
+    // Wait, the hook's metrics are separate from calculator results.
+    // I should probably adjust the lot size here too if shield is active.
+
+    if (isShieldActive) {
+      const precision = instrumentType === 'gold' ? 2 : 3;
+      calculated.calculatedLots = (parseFloat(calculated.calculatedLots) / 2).toFixed(precision);
+    }
+
     setResults(calculated);
   };
 
@@ -137,26 +159,24 @@ export function TradeCalculatorSection({ currentBalance, instrumentType, instrum
           </div>
           <div>
             <Label htmlFor="customTPCalc" className="text-foreground/80">Custom Take Profit (pips)</Label>
-            <Input 
-              id="customTPCalc" 
-              type="number" 
-              placeholder={instrumentType === 'volatility75' ? "e.g., 2000" : "e.g., 200"} 
-              value={customTP} 
-              onChange={(e) => setCustomTP(e.target.value)} 
+            <Input
+              id="customTPCalc"
+              type="number"
+              value={customTP}
+              onChange={(e) => setCustomTP(e.target.value)}
             />
           </div>
-           <div>
+          <div>
             <Label htmlFor="customSLCalc" className="text-foreground/80">Custom Stop Loss (pips)</Label>
-            <Input 
-              id="customSLCalc" 
-              type="number" 
-              placeholder={instrumentType === 'volatility75' ? "e.g., 1000" : "e.g., 100"} 
-              value={customSL} 
-              onChange={(e) => setCustomSL(e.target.value)} 
+            <Input
+              id="customSLCalc"
+              type="number"
+              value={customSL}
+              onChange={(e) => setCustomSL(e.target.value)}
             />
           </div>
         </div>
-        <Button onClick={handleCalculate} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground mb-6 py-3 text-base">
+        <Button onClick={handleCalculate} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground mb-6 py-3 text-base font-bold shadow-md active:scale-[0.98] transition-all">
           Calculate Trade Parameters
         </Button>
 
@@ -171,4 +191,3 @@ export function TradeCalculatorSection({ currentBalance, instrumentType, instrum
     </Card>
   );
 }
-
