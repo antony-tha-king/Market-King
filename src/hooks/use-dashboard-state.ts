@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { getLocalStorageItem, setLocalStorageItem, calculateTradeGroupsLogic } from '@/lib/utils';
 import type { TradePlan, Metric, InstrumentType } from '@/lib/types';
 import { useToast } from './use-toast';
+import { useDerivApi } from './use-deriv-api';
 
 const TARGET_BALANCE = 1000000;
 
@@ -32,6 +33,45 @@ export function useDashboardState(instrumentType: InstrumentType, initialBalance
   const [tradePlan, setTradePlan] = useState<TradePlan | null>(null);
   const [isShieldActive, setIsShieldActive] = useState<boolean>(false);
   const { toast } = useToast();
+  const { balance: derivBalance, syncEnabled } = useDerivApi();
+
+  // Automatically sync with Deriv live WebSocket balance if enabled
+  useEffect(() => {
+    if (syncEnabled && derivBalance !== null && derivBalance !== currentBalance) {
+      const difference = derivBalance - currentBalance;
+      const today = new Date().toDateString();
+      let updatedTradesToday = tradesToday;
+
+      if (today !== lastTradeDate) {
+        updatedTradesToday = 0;
+        setLastTradeDate(today);
+        setLocalStorageItem(getLsKey('lastTradeDate'), today);
+      }
+
+      // If the balance change is significant, log a trade!
+      if (Math.abs(difference) >= 0.01) {
+        updatedTradesToday++;
+        setTradesToday(updatedTradesToday);
+        
+        // Celebrate a win or log a loss with customized notifications
+        if (difference > 0) {
+          toast({
+            title: "Deriv Sync: Trade Won! 🎉",
+            description: `Profits logged: +$${difference.toFixed(2)}. New Balance: $${derivBalance.toFixed(2)}`,
+            className: "border-emerald-500/30 bg-emerald-950/80 text-white backdrop-blur-md"
+          });
+        } else {
+          toast({
+            title: "Deriv Sync: Trade Completed 📉",
+            description: `Loss logged: -$${Math.abs(difference).toFixed(2)}. New Balance: $${derivBalance.toFixed(2)}`,
+            variant: "destructive"
+          });
+        }
+      }
+      
+      setCurrentBalance(derivBalance);
+    }
+  }, [derivBalance, syncEnabled, currentBalance, tradesToday, lastTradeDate, toast, instrumentType, initialBalanceDefault]);
 
   const getLsKey = (baseKey: string) => `${instrumentType}_${baseKey}`;
 
