@@ -47,6 +47,20 @@ export function DerivSyncWidget() {
   const [showToken, setShowToken] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
 
+  const [redirectUrl, setRedirectUrl] = React.useState("http://localhost:9002");
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const pathSegments = window.location.pathname.split('/');
+      // If hosted on GitHub Pages, append repository directory
+      if (window.location.hostname.includes("github.io") && pathSegments[1]) {
+        setRedirectUrl(`${window.location.origin}/${pathSegments[1]}/`);
+      } else {
+        setRedirectUrl(`${window.location.origin}/`);
+      }
+    }
+  }, []);
+
   // Sync state token to input when dialog opens
   React.useEffect(() => {
     if (dialogOpen) {
@@ -266,14 +280,14 @@ export function DerivSyncWidget() {
           {/* Guide Scope */}
           <div className="border-t border-white/[0.05] pt-4 mt-2">
             <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1">
-              <HelpCircle className="w-3.5 h-3.5" /> Setup Guide & Port :9002 issues
+              <HelpCircle className="w-3.5 h-3.5" /> Setup Guide & Redirect URLs
             </span>
-            <ol className="list-decimal list-inside text-[11px] text-zinc-500 mt-2 space-y-1.5 pl-0.5 font-medium leading-relaxed">
+            <ol className="list-decimal list-inside text-[11px] text-zinc-500 mt-2 space-y-1.5 pl-0.5 font-medium leading-relaxed font-body">
               <li>Log in at <a href="https://deriv.com" target="_blank" rel="noopener noreferrer" className="text-teal-400 hover:underline">deriv.com</a> &rarr; settings &rarr; API Token &rarr; create a <span className="text-emerald-400 font-bold">"Read"</span> token.</li>
-              <li>Since your app runs on port <span className="text-amber-400">9002</span>, you need to register a free App ID at <a href="https://api.deriv.com" target="_blank" rel="noopener noreferrer" className="text-teal-400 hover:underline">api.deriv.com</a>:
-                <ul className="list-disc list-inside pl-4 mt-1 text-zinc-500 space-y-0.5">
-                  <li>Redirect URL: <span className="font-mono text-zinc-400 text-[10px]">http://localhost:9002</span></li>
-                  <li>Verification URL: <span className="font-mono text-zinc-400 text-[10px]">http://localhost:9002</span></li>
+              <li>Since your app is running here, register your App ID at <a href="https://api.deriv.com" target="_blank" rel="noopener noreferrer" className="text-teal-400 hover:underline">api.deriv.com</a> with:
+                <ul className="list-disc list-inside pl-4 mt-1 text-zinc-500 space-y-0.5 font-mono text-[10px]">
+                  <li>Redirect URL: <span className="text-zinc-400">{redirectUrl}</span></li>
+                  <li>Verification URL: <span className="text-zinc-400">{redirectUrl}</span></li>
                 </ul>
               </li>
               <li>Copy your generated <span className="text-white">App ID</span> and paste it above to establish the connection!</li>
