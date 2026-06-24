@@ -9,7 +9,6 @@ import { ClockWidget, TimerWidget, VolumeWidget, MarketFAQ } from '@/components/
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { LogOut, ChevronRight } from 'lucide-react';
-import { DerivSyncWidget } from '@/components/dashboard/common/deriv-sync-widget';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -51,7 +50,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
 
             <TradingSessions variant="nav" />
-            <DerivSyncWidget />
 
             {/* Desktop-only utilities */}
             <div className="hidden lg:flex items-center gap-2">

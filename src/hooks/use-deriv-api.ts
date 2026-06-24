@@ -34,7 +34,7 @@ export function useDerivApi() {
   useEffect(() => {
     setToken(getLocalStorageItem<string>("deriv_api_token", ""));
     setAppId(getLocalStorageItem<string>("deriv_app_id", "1089"));
-    setSyncEnabled(getLocalStorageItem<boolean>("deriv_sync_enabled", false));
+    setSyncEnabled(false); // Force disabled as Deriv Sync is removed
   }, []);
 
   const disconnect = useCallback(() => {
@@ -189,11 +189,7 @@ export function useDerivApi() {
 
   // Connect automatically if sync is enabled and a token exists
   useEffect(() => {
-    if (syncEnabled && token && appId) {
-      connect(token, appId);
-    } else {
-      disconnect();
-    }
+    disconnect();
   }, [syncEnabled, token, appId, connect, disconnect]);
 
   // Clean up on unmount

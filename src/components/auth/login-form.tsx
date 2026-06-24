@@ -59,7 +59,7 @@ export function LoginForm() {
     defaultValues: {
       username: "",
       password: "",
-      instrument: "volatility75",
+      instrument: "gold",
     },
   });
 
